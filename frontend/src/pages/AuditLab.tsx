@@ -547,7 +547,7 @@ export function AuditLab() {
               ARES PROTOCOL ACTIVE
             </span>
           </div>
-          <span className="font-mono text-[9px] text-[#1a1a1a] tracking-widest">
+          <span className="font-mono text-[10px] font-bold text-[#EF4444] tracking-widest bg-[#EF4444]/10 border border-[#EF4444]/30 px-2 py-1">
             DO NOT CLOSE THIS WINDOW
           </span>
         </div>

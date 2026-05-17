@@ -86,7 +86,7 @@ export function Layout({ children }: LayoutProps) {
       {/* ── LOGOUT CONFIRMATION MODAL ── */}
       {showLogoutModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-          <div className="bg-[#0a0a0a] border border-[#262626] w-80 p-6">
+          <div className="w-full max-w-md bg-[#0a0a0a] border border-[#262626] p-6 sm:p-8 relative mx-4 sm:mx-0">
             <div className="flex items-center gap-2 mb-4">
               <LogOutIcon className="w-4 h-4 text-[#EF4444]" />
               <span className="font-mono text-xs font-bold text-white tracking-widest">CONFIRM LOGOUT</span>
@@ -118,6 +118,7 @@ export function Layout({ children }: LayoutProps) {
       }
 
       {/* ── SIDEBAR ── */}
+      {location.pathname !== '/' && (
       <aside
         className={`
           fixed top-0 left-0 h-full z-40 flex flex-col bg-[#050505] border-r border-[#262626]
@@ -159,9 +160,9 @@ export function Layout({ children }: LayoutProps) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <ZapIcon className="w-4 h-4 text-[#EF4444] flex-shrink-0" />
-                  <span className="font-mono text-sm font-bold text-white tracking-widest">
-                    ARES AI
-                  </span>
+                    <span className="font-mono text-sm font-bold text-white tracking-widest whitespace-nowrap">
+                      ARES AI
+                    </span>
                 </div>
                 <p className="font-mono text-[10px] text-[#404040] mt-1 tracking-widest">
                   STRESS-TEST ENGINE
@@ -282,6 +283,7 @@ export function Layout({ children }: LayoutProps) {
           </button>
         </div>
       </aside>
+      )}
 
       {/* ── RIGHT SIDE ── */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
@@ -295,7 +297,7 @@ export function Layout({ children }: LayoutProps) {
           </button>
           <div className="flex items-center gap-2">
             <ZapIcon className="w-3.5 h-3.5 text-[#EF4444]" />
-            <span className="font-mono text-sm font-bold text-white tracking-widest">
+            <span className="font-mono text-sm font-bold text-white tracking-widest whitespace-nowrap">
               ARES AI
             </span>
           </div>

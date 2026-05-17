@@ -17,7 +17,7 @@ export function exportToPdf({ title, subtitle, columns, rows, filename }: Export
   doc.text('ARES AI', 14, 15);
 
   doc.setFontSize(12);
-  doc.setTextColor(255, 255, 255);
+  doc.setTextColor(20, 20, 20);
   doc.text(title, 14, 25);
 
   if (subtitle) {
@@ -32,18 +32,18 @@ export function exportToPdf({ title, subtitle, columns, rows, filename }: Export
     body: rows,
     theme: 'grid',
     styles: {
-      fillColor: [10, 10, 10],
-      textColor: [200, 200, 200],
+      fillColor: [255, 255, 255],
+      textColor: [20, 20, 20],
       fontSize: 8,
       font: 'courier',
     },
     headStyles: {
-      fillColor: [30, 30, 30],
-      textColor: [239, 68, 68],
+      fillColor: [245, 245, 245],
+      textColor: [80, 80, 80],
       fontStyle: 'bold',
     },
     alternateRowStyles: {
-      fillColor: [15, 15, 15],
+      fillColor: [250, 250, 250],
     },
   });
 

@@ -94,8 +94,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     <div className="flex h-screen w-full bg-[#050505] overflow-hidden">
       {/* ── LOGOUT CONFIRMATION MODAL ── */}
       {showLogoutModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-          <div className="bg-[#0a0a0a] border border-[#EF4444]/30 w-80 p-6">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+            <div className="w-full max-w-md bg-[#0a0a0a] border border-[#EF4444]/30 p-6 sm:p-8 relative mx-4 sm:mx-0">
             <div className="flex items-center gap-2 mb-4">
               <LogOutIcon className="w-4 h-4 text-[#EF4444]" />
               <span className="font-mono text-xs font-bold text-white tracking-widest">CONFIRM LOGOUT</span>
@@ -166,20 +166,18 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           ) : (
             <>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2">
                   <ShieldAlertIcon className="w-4 h-4 text-[#EF4444] flex-shrink-0" />
                   <span className="font-mono text-sm font-bold text-white tracking-widest">
                     ARES AI
                   </span>
+                  <button
+                    onClick={() => setMobileOpen(false)}
+                    className="lg:hidden flex items-center justify-center w-6 h-6 border border-[#262626] text-[#404040] hover:text-white transition-colors ml-auto flex-shrink-0"
+                  >
+                    <XIcon className="w-3 h-3" />
+                  </button>
                 </div>
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#EF4444]/10 border border-[#EF4444]/30">
-                  <span className="font-mono text-[9px] font-bold text-[#EF4444] tracking-widest">
-                    ADMIN
-                  </span>
-                </div>
-                <p className="font-mono text-[9px] text-[#404040] mt-1 tracking-widest">
-                  OVERSEER MODE
-                </p>
               </div>
               <button
                 onClick={() => setCollapsed(true)}
@@ -188,16 +186,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 <ChevronLeftIcon className="w-3 h-3" />
               </button>
             </>
-          )}
-
-          {/* Mobile close */}
-          {!collapsed && (
-            <button
-              onClick={() => setMobileOpen(false)}
-              className="lg:hidden flex items-center justify-center w-6 h-6 border border-[#262626] text-[#404040] hover:text-white transition-colors ml-2 flex-shrink-0"
-            >
-              <XIcon className="w-3 h-3" />
-            </button>
           )}
         </div>
 

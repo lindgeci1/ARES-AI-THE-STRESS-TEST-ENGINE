@@ -98,13 +98,15 @@ export function AdminPayments() {
   return (
     <div className="p-6 min-h-full">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-1">
+      <div className="mb-3">
+        <div className="flex items-start justify-between mb-1">
           <div className="flex items-center gap-2">
             <CreditCardIcon className="w-4 h-4 text-[#EF4444]" />
             <h1 className="font-sans text-xl font-bold text-white tracking-wide">
               PAYMENTS
             </h1>
+          </div>
+          <div className="hidden md:flex items-center gap-2">
             <button
               onClick={handleReload}
               disabled={loading || reloading}
@@ -113,22 +115,40 @@ export function AdminPayments() {
               <RefreshCwIcon className={`w-3 h-3 ${reloading ? 'animate-spin' : ''}`} />
               REFRESH
             </button>
+            <button
+              onClick={handleExportPdf}
+              className="flex items-center gap-2 font-mono text-[9px] text-[#666] tracking-widest border border-[#262626] px-3 py-2 hover:border-[#404040] hover:text-[#999] transition-colors"
+            >
+              <DownloadIcon className="w-3 h-3" />
+              EXPORT PDF
+            </button>
           </div>
-          <button
-            onClick={handleExportPdf}
-            className="flex items-center gap-2 px-4 py-2.5 border border-[#262626] text-[#666] font-mono text-xs tracking-widest hover:border-[#404040] hover:text-white transition-colors"
-          >
-            <DownloadIcon className="w-3.5 h-3.5" />
-            EXPORT PDF
-          </button>
         </div>
         <p className="font-mono text-[10px] text-[#404040] tracking-wider">
           ALL STRIPE TRANSACTIONS
         </p>
       </div>
 
+      <div className="flex w-full gap-2 mb-6 md:hidden">
+        <button
+          onClick={handleReload}
+          disabled={loading || reloading}
+          className="flex-1 flex items-center justify-center gap-2 font-mono text-[9px] text-[#666] tracking-widest border border-[#262626] px-3 py-2 hover:border-[#404040] hover:text-[#999] transition-colors disabled:opacity-50"
+        >
+          <RefreshCwIcon className={`w-3 h-3 ${reloading ? 'animate-spin' : ''}`} />
+          REFRESH
+        </button>
+        <button
+          onClick={handleExportPdf}
+          className="flex-1 flex items-center justify-center gap-2 font-mono text-[9px] text-[#666] tracking-widest border border-[#262626] px-3 py-2 hover:border-[#404040] hover:text-[#999] transition-colors"
+        >
+          <DownloadIcon className="w-3 h-3" />
+          EXPORT PDF
+        </button>
+      </div>
+
       {/* Stats row */}
-      <div className="grid grid-cols-3 gap-px bg-[#262626] mb-8">
+      <div className="grid grid-cols-2 gap-px bg-[#262626] mb-8">
         <div className="bg-[#0a0a0a] p-4">
           <p className="font-mono text-[9px] text-[#404040] tracking-widest mb-1">TOTAL TRANSACTIONS</p>
           <p className="font-sans text-2xl font-bold text-white">{payments.length}</p>
@@ -139,7 +159,7 @@ export function AdminPayments() {
             {payments.filter((p) => p.status === 'succeeded').length}
           </p>
         </div>
-        <div className="bg-[#0a0a0a] p-4">
+        <div className="bg-[#0a0a0a] p-4 col-span-2">
           <p className="font-mono text-[9px] text-[#404040] tracking-widest mb-1">TOTAL REVENUE</p>
           <p className="font-sans text-2xl font-bold text-[#EF4444]">
             ${totalRevenue.toFixed(2)}
@@ -147,24 +167,23 @@ export function AdminPayments() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="border border-[#262626]">
-        <div className="px-4 py-3 border-b border-[#262626]">
-          <span className="font-mono text-[10px] text-[#666] tracking-widest">
-            TRANSACTION LOG
-          </span>
-        </div>
+          {/* Search (placed outside the table container) */}
+          <div className="relative mb-4">
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#404040]" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="SEARCH USER, PLAN, OR STATUS..."
+              className="w-full bg-[#0a0a0a] border border-[#262626] pl-9 pr-4 py-2.5 font-mono text-xs text-white placeholder-[#333] focus:border-[#3B82F6] focus:outline-none transition-colors"
+            />
+          </div>
 
-        <div className="relative p-4 border-b border-[#262626]">
-          <SearchIcon className="absolute left-7 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#404040]" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="SEARCH USER, PLAN, OR STATUS..."
-            className="w-full bg-[#0a0a0a] border border-[#262626] pl-9 pr-4 py-2.5 font-mono text-xs text-white placeholder-[#333] focus:border-[#3B82F6] focus:outline-none transition-colors"
-          />
-        </div>
+          {/* Table */}
+          <div className="border border-[#262626]">
+            <div className="px-4 py-3 border-b border-[#262626]">
+              <span className="font-mono text-[10px] text-[#666] tracking-widest">TRANSACTION LOG</span>
+            </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-16">
@@ -189,7 +208,7 @@ export function AdminPayments() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[1100px]">
               <thead>
                 <tr className="border-b border-[#1a1a1a]">
                   <th className="text-left font-mono text-[9px] text-[#404040] tracking-widest px-4 py-3">
@@ -218,23 +237,23 @@ export function AdminPayments() {
               <tbody>
                 {filteredPayments.map((p) => (
                   <tr key={p.id} className="border-b border-[#111] last:border-0 hover:bg-[#0f0f0f] transition-colors">
-                    <td className="font-mono text-[10px] text-[#404040] px-4 py-3">
+                    <td className="font-mono text-[10px] text-[#404040] px-4 py-3 whitespace-nowrap">
                       #{p.id}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <span className="font-mono text-[10px] text-[#999]">
                         {p.user?.email ?? `USER #${p.user_id}`}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <span className="font-mono text-[10px] text-white">
                         {p.offer?.name ?? '—'}
                       </span>
                     </td>
-                    <td className="font-mono text-[10px] text-white px-4 py-3 text-right">
+                    <td className="font-mono text-[10px] text-white px-4 py-3 text-right whitespace-nowrap">
                       ${p.amount_paid.toFixed(2)}
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
                       <span
                         className={`font-mono text-[9px] font-bold tracking-widest px-2 py-0.5 ${
                           p.status === 'succeeded'

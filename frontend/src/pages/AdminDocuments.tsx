@@ -300,11 +300,18 @@ export function AdminDocuments() {
 
       {!loading && (
         <>
-          <div className="flex items-start justify-between mb-6">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <FileTextIcon className="w-4 h-4 text-[#EF4444]" />
-                <h1 className="font-sans text-xl font-bold text-white tracking-wide">GLOBAL DOCUMENT REGISTRY</h1>
+          <div className="mb-3">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <FileTextIcon className="w-4 h-4 text-[#EF4444]" />
+                  <h1 className="font-sans text-xl font-bold text-white tracking-wide">DOCUMENT REGISTRY</h1>
+                </div>
+                <p className="font-mono text-[10px] text-[#404040] tracking-widest">
+                  {documents.length} DOCUMENTS — AVG RESILIENCE: {avgScore}%
+                </p>
+              </div>
+              <div className="hidden md:flex items-center gap-2">
                 <button
                   onClick={handleReload}
                   disabled={loading || reloading}
@@ -313,23 +320,36 @@ export function AdminDocuments() {
                   <RefreshCwIcon className={`w-3 h-3 ${reloading ? 'animate-spin' : ''}`} />
                   REFRESH
                 </button>
+                <button
+                  onClick={handleExportPdf}
+                  className="flex items-center gap-2 font-mono text-[9px] text-[#666] tracking-widest border border-[#262626] px-3 py-2 hover:border-[#404040] hover:text-[#999] transition-colors"
+                >
+                  <DownloadIcon className="w-3 h-3" />
+                  EXPORT PDF
+                </button>
               </div>
-              <p className="font-mono text-[10px] text-[#404040] tracking-widest">
-                {documents.length} DOCUMENTS — AVG RESILIENCE: {avgScore}%
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleExportPdf}
-                className="flex items-center gap-2 px-4 py-2.5 border border-[#262626] text-[#666] font-mono text-xs tracking-widest hover:border-[#404040] hover:text-white transition-colors"
-              >
-                <DownloadIcon className="w-3.5 h-3.5" />
-                EXPORT PDF
-              </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-px bg-[#262626] mb-5">
+          <div className="flex w-full gap-2 mb-6 md:hidden">
+            <button
+              onClick={handleReload}
+              disabled={loading || reloading}
+              className="flex-1 flex items-center justify-center gap-2 font-mono text-[9px] text-[#666] tracking-widest border border-[#262626] px-3 py-2 hover:border-[#404040] hover:text-[#999] transition-colors disabled:opacity-50"
+            >
+              <RefreshCwIcon className={`w-3 h-3 ${reloading ? 'animate-spin' : ''}`} />
+              REFRESH
+            </button>
+            <button
+              onClick={handleExportPdf}
+              className="flex-1 flex items-center justify-center gap-2 font-mono text-[9px] text-[#666] tracking-widest border border-[#262626] px-3 py-2 hover:border-[#404040] hover:text-[#999] transition-colors"
+            >
+              <DownloadIcon className="w-3 h-3" />
+              EXPORT PDF
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-px bg-[#262626] mb-5">
             <div className="bg-[#0a0a0a] px-4 py-3">
               <div className="font-mono text-lg font-bold text-white">
                 {documents.filter((d) => d.status === 'PROCESSED').length}
@@ -366,9 +386,9 @@ export function AdminDocuments() {
           </div>
 
           <div className="border border-[#262626] overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[1100px]">
               <thead>
-                <tr className="border-b border-[#262626] bg-[#0a0a0a]">
+                      <tr className="border-b border-[#262626] bg-[#0a0a0a]">
                   <th className="px-4 py-3 text-left">
                     <button
                       onClick={() => handleSort('name')}
@@ -439,12 +459,12 @@ export function AdminDocuments() {
                         <div className="font-mono text-[9px] text-[#333] ml-5">{doc.source.id}</div>
                       </td>
 
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <div className="font-sans text-xs text-white">{doc.owner}</div>
                         <div className="font-mono text-[9px] text-[#333]">{doc.ownerEmail}</div>
                       </td>
 
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <div
                           className={`flex items-center gap-2 ${hasMultiple ? 'cursor-pointer hover:opacity-80' : ''}`}
                           onClick={() => hasMultiple && setResilienceHistoryDoc(doc.source)}
@@ -471,7 +491,7 @@ export function AdminDocuments() {
                         </div>
                       </td>
 
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <span
                           className={`font-mono text-[9px] font-bold px-1.5 py-0.5 tracking-widest ${
                             doc.status === 'PROCESSED'
@@ -487,9 +507,9 @@ export function AdminDocuments() {
                         </span>
                       </td>
 
-                      <td className="px-4 py-3 font-mono text-[10px] text-[#666]">{formatDate(doc.source.created_at)}</td>
+                      <td className="px-4 py-3 font-mono text-[10px] text-[#666] whitespace-nowrap">{formatDate(doc.source.created_at)}</td>
 
-                      <td className="px-4 py-3 font-mono text-[10px] text-white">{doc.source.rounds_used || 1}</td>
+                      <td className="px-4 py-3 font-mono text-[10px] text-white whitespace-nowrap">{doc.source.rounds_used || 1}</td>
 
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
@@ -687,7 +707,7 @@ export function AdminDocuments() {
                 onClick={() => handleDelete(deleteTarget.source.id)}
                 className="flex-1 py-2.5 bg-[#EF4444] text-white font-mono text-xs font-bold tracking-widest hover:bg-[#dc2626] transition-colors"
               >
-                CONFIRM DELETE
+                DELETE
               </button>
               <button
                 onClick={() => setDeleteTarget(null)}

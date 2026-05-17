@@ -143,11 +143,11 @@ function CheckoutForm({ offer, intentData, onSuccess }: CheckoutFormProps) {
       <button
         type="submit"
         disabled={processing || !stripe}
-        className="w-full py-4 bg-[#3B82F6] text-white font-mono text-sm font-bold tracking-widest hover:bg-[#2563eb] transition-colors disabled:opacity-60 disabled:cursor-not-allowed relative overflow-hidden"
+        className="w-full py-3.5 bg-[#3B82F6] text-white font-mono text-[11px] sm:text-sm font-bold tracking-widest hover:bg-[#2563eb] transition-colors disabled:opacity-60 disabled:cursor-not-allowed relative overflow-hidden"
       >
         {processing ? (
           <span className="flex items-center justify-center gap-3">
-            <span className="font-mono text-xs tracking-widest">PROCESSING PAYMENT</span>
+            <span className="font-mono text-[10px] sm:text-xs tracking-widest">PROCESSING PAYMENT</span>
           </span>
         ) : (
           <span className="flex items-center justify-center gap-2">
@@ -223,8 +223,8 @@ export function Checkout() {
     <div className="border-b border-[#262626] px-6 py-4 flex items-center justify-between">
       <div className="flex items-center gap-3">
         <ZapIcon className="w-4 h-4 text-[#EF4444]" />
-        <span className="font-mono text-sm font-bold tracking-widest">ARES AI</span>
-        <span className="font-mono text-[10px] text-[#404040] tracking-widest ml-2">
+        <span className="font-mono text-xs font-bold tracking-widest whitespace-nowrap">ARES AI</span>
+        <span className="font-mono text-[9px] text-[#404040] tracking-widest ml-2 whitespace-nowrap">
           — SECURE CHECKOUT
         </span>
       </div>
@@ -274,8 +274,8 @@ export function Checkout() {
   return (
     <div className="min-h-screen bg-[#050505] text-white">
       {topBar}
-      <div className="max-w-4xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-2 gap-0 border border-[#262626] mt-8">
-        <div className="bg-[#080808] border-r border-[#262626] p-8 flex flex-col">
+      <div className="max-w-3xl md:max-w-4xl mx-auto px-4 sm:px-6 py-12 grid grid-cols-1 md:grid-cols-2 gap-0 border border-[#262626] mt-8">
+        <div className="bg-[#080808] border-r border-[#262626] p-6 sm:p-8 flex flex-col">
           <Link
             to="/billing"
             className="flex items-center gap-2 font-mono text-[10px] text-[#404040] hover:text-[#666] tracking-widest mb-8 transition-colors w-fit"
@@ -340,16 +340,18 @@ export function Checkout() {
             </p>
           </div>
         </div>
-        <div className="bg-[#050505] p-8">
+        <div className="bg-[#050505] p-6 sm:p-8">
           <div className="mb-6">
             <span className="font-mono text-[9px] text-[#404040] tracking-widest">PAYMENT DETAILS</span>
           </div>
-          <Elements stripe={stripePromise}>
-            <CheckoutForm offer={offer} intentData={intentData} onSuccess={handleSuccess} />
-          </Elements>
+          <div className="w-full max-w-md mx-auto md:max-w-none">
+            <Elements stripe={stripePromise}>
+              <CheckoutForm offer={offer} intentData={intentData} onSuccess={handleSuccess} />
+            </Elements>
+          </div>
         </div>
       </div>
-      <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-center gap-6">
+      <div className="max-w-3xl md:max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-center gap-6">
         <span className="font-mono text-[9px] text-[#1a1a1a]">VISA</span>
         <span className="font-mono text-[9px] text-[#1a1a1a]">MASTERCARD</span>
         <span className="font-mono text-[9px] text-[#1a1a1a]">AMEX</span>

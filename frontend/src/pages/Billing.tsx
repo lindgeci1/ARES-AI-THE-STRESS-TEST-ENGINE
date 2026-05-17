@@ -128,15 +128,27 @@ export function Billing() {
     <div className="p-6 min-h-full">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-2 mb-1">
-          <ZapIcon className="w-4 h-4 text-[#EF4444]" />
-          <h1 className="font-sans text-xl font-bold text-white tracking-wide">
-            BILLING &amp; PLANS
-          </h1>
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <ZapIcon className="w-4 h-4 text-[#EF4444]" />
+            <h1 className="font-sans text-xl font-bold text-white tracking-wide">
+              BILLING &amp; PLANS
+            </h1>
+          </div>
           <button
             onClick={handleReload}
             disabled={offersLoading || paymentsLoading || reloading}
-            className="flex items-center gap-2 font-mono text-[9px] text-[#666] tracking-widest border border-[#262626] px-3 py-2 hover:border-[#404040] hover:text-[#999] transition-colors disabled:opacity-50"
+            className="hidden md:flex items-center gap-2 font-mono text-[9px] text-[#666] tracking-widest border border-[#262626] px-3 py-2 hover:border-[#404040] hover:text-[#999] transition-colors disabled:opacity-50"
+          >
+            <RefreshCwIcon className={`w-3 h-3 ${reloading ? 'animate-spin' : ''}`} />
+            REFRESH
+          </button>
+        </div>
+        <div className="mt-3 md:hidden">
+          <button
+            onClick={handleReload}
+            disabled={offersLoading || paymentsLoading || reloading}
+            className="flex w-full items-center justify-center gap-2 font-mono text-[9px] text-[#666] tracking-widest border border-[#262626] px-3 py-2 hover:border-[#404040] hover:text-[#999] transition-colors disabled:opacity-50"
           >
             <RefreshCwIcon className={`w-3 h-3 ${reloading ? 'animate-spin' : ''}`} />
             REFRESH
@@ -306,33 +318,33 @@ export function Billing() {
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="min-w-[820px] w-full table-auto">
                 <thead>
                   <tr className="border-b border-[#1a1a1a]">
-                    <th className="text-left font-mono text-[9px] text-[#404040] tracking-widest pb-2 pr-4">DATE</th>
-                    <th className="text-left font-mono text-[9px] text-[#404040] tracking-widest pb-2 pr-4">PLAN</th>
-                    <th className="text-right font-mono text-[9px] text-[#404040] tracking-widest pb-2 pr-4">AMOUNT</th>
-                    <th className="text-right font-mono text-[9px] text-[#404040] tracking-widest pb-2">STATUS</th>
-                    <th className="text-right font-mono text-[9px] text-[#404040] tracking-widest pb-2">RECEIPT</th>
+                    <th className="text-left font-mono text-[9px] text-[#404040] tracking-widest pb-2 pr-4 whitespace-nowrap">DATE</th>
+                    <th className="text-left font-mono text-[9px] text-[#404040] tracking-widest pb-2 pr-4 whitespace-nowrap">PLAN</th>
+                    <th className="text-right font-mono text-[9px] text-[#404040] tracking-widest pb-2 pr-4 whitespace-nowrap">AMOUNT</th>
+                    <th className="text-right font-mono text-[9px] text-[#404040] tracking-widest pb-2 whitespace-nowrap">STATUS</th>
+                    <th className="text-right font-mono text-[9px] text-[#404040] tracking-widest pb-2 whitespace-nowrap">RECEIPT</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredPayments.map((p) => (
                     <tr key={p.id} className="border-b border-[#111] last:border-0">
-                      <td className="font-mono text-[10px] text-[#666] py-2.5 pr-4">
+                      <td className="font-mono text-[10px] text-[#666] py-2.5 pr-4 whitespace-nowrap">
                         {new Date(p.created_at).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'short',
                           day: 'numeric'
                         })}
                       </td>
-                      <td className="font-mono text-[10px] text-white py-2.5 pr-4">
+                      <td className="font-mono text-[10px] text-white py-2.5 pr-4 whitespace-nowrap">
                         {p.offer?.name ?? 'PLAN'}
                       </td>
-                      <td className="font-mono text-[10px] text-white py-2.5 pr-4 text-right">
+                      <td className="font-mono text-[10px] text-white py-2.5 pr-4 text-right whitespace-nowrap">
                         ${p.amount_paid.toFixed(2)}
                       </td>
-                      <td className="py-2.5 text-right">
+                      <td className="py-2.5 text-right whitespace-nowrap">
                         <span
                           className={`font-mono text-[9px] font-bold tracking-widest px-2 py-0.5 ${
                             p.status === 'succeeded'
@@ -345,7 +357,7 @@ export function Billing() {
                           {p.status.toUpperCase()}
                         </span>
                       </td>
-                      <td className="py-2.5 text-right">
+                      <td className="py-2.5 text-right whitespace-nowrap">
                         {p.status === 'succeeded' && (
                           <button
                             onClick={async () => {

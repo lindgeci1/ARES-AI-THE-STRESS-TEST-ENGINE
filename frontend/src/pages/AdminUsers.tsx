@@ -304,50 +304,86 @@ export function AdminUsers() {
   return (
     <div className="p-6 min-h-full">
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <UsersIcon className="w-4 h-4 text-[#EF4444]" />
-            <h1 className="font-sans text-xl font-bold text-white tracking-wide">
-              ENTITY MANAGEMENT
-            </h1>
+      <div className="mb-3">
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <UsersIcon className="w-4 h-4 text-[#EF4444]" />
+              <h1 className="font-sans text-xl font-bold text-white tracking-wide">
+                ENTITY MANAGEMENT
+              </h1>
+            </div>
+            <p className="font-mono text-[10px] text-[#404040] tracking-widest">
+              {users.length} REGISTERED OPERATORS —{' '}
+              {users.filter((u) => u.status === 'ACTIVE').length} ACTIVE
+            </p>
+          </div>
+          <div className="hidden md:grid grid-cols-2 gap-2 w-fit ml-auto">
             <button
               onClick={handleReload}
               disabled={loading || reloading}
-              className="flex items-center gap-2 font-mono text-[9px] text-[#666] tracking-widest border border-[#262626] px-3 py-2 hover:border-[#404040] hover:text-[#999] transition-colors disabled:opacity-50"
+              className="flex items-center justify-center gap-2 font-mono text-[9px] text-[#666] tracking-widest border border-[#262626] px-3 py-2 hover:border-[#404040] hover:text-[#999] transition-colors disabled:opacity-50"
             >
               <RefreshCwIcon className={`w-3 h-3 ${reloading ? 'animate-spin' : ''}`} />
               REFRESH
             </button>
+            <button
+              onClick={handleExportPdf}
+              className="flex items-center justify-center gap-2 font-mono text-[9px] text-[#666] tracking-widest border border-[#262626] px-3 py-2 hover:border-[#404040] hover:text-[#999] transition-colors"
+            >
+              <DownloadIcon className="w-3 h-3" />
+              EXPORT PDF
+            </button>
+            <button
+              onClick={() =>
+                setTempModal({
+                  show: true,
+                  name: '',
+                  email: '',
+                  expiry: ''
+                })
+              }
+              className="col-span-2 flex items-center justify-center gap-2 px-4 py-2 bg-[#EF4444] text-white font-mono text-[9px] font-bold tracking-widest hover:bg-[#dc2626] transition-colors"
+            >
+              <PlusIcon className="w-3 h-3" />
+              GENERATE TEMP USER
+            </button>
           </div>
-          <p className="font-mono text-[10px] text-[#404040] tracking-widest">
-            {users.length} REGISTERED OPERATORS —{' '}
-            {users.filter((u) => u.status === 'ACTIVE').length} ACTIVE
-          </p>
         </div>
-        <div className="flex items-center gap-2">
+      </div>
+
+      <div className="mb-6 space-y-2 md:hidden">
+        <div className="flex w-full gap-2">
+          <button
+            onClick={handleReload}
+            disabled={loading || reloading}
+            className="flex-1 flex items-center justify-center gap-2 font-mono text-xs text-[#666] tracking-widest border border-[#262626] px-3 py-2.5 hover:border-[#404040] hover:text-[#999] transition-colors disabled:opacity-50"
+          >
+            <RefreshCwIcon className={`w-3.5 h-3.5 ${reloading ? 'animate-spin' : ''}`} />
+            REFRESH
+          </button>
           <button
             onClick={handleExportPdf}
-            className="flex items-center gap-2 px-4 py-2.5 border border-[#262626] text-[#666] font-mono text-xs tracking-widest hover:border-[#404040] hover:text-white transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 font-mono text-xs text-[#666] tracking-widest border border-[#262626] px-3 py-2.5 hover:border-[#404040] hover:text-[#999] transition-colors"
           >
             <DownloadIcon className="w-3.5 h-3.5" />
             EXPORT PDF
           </button>
-          <button
-            onClick={() =>
-              setTempModal({
-                show: true,
-                name: '',
-                email: '',
-                expiry: ''
-              })
-            }
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#EF4444] text-white font-mono text-xs font-bold tracking-widest hover:bg-[#dc2626] transition-colors">
-
-            <PlusIcon className="w-3.5 h-3.5" />
-            GENERATE TEMP USER
-          </button>
         </div>
+        <button
+          onClick={() =>
+            setTempModal({
+              show: true,
+              name: '',
+              email: '',
+              expiry: ''
+            })
+          }
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#EF4444] text-white font-mono text-xs font-bold tracking-widest hover:bg-[#dc2626] transition-colors"
+        >
+          <PlusIcon className="w-3.5 h-3.5" />
+          GENERATE TEMP USER
+        </button>
       </div>
 
       {/* Error message */}
@@ -371,7 +407,7 @@ export function AdminUsers() {
 
       {/* Table */}
       <div className="border border-[#262626] overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full min-w-[1100px]">
           <thead>
             <tr className="border-b border-[#262626] bg-[#0a0a0a]">
               {[
@@ -409,7 +445,7 @@ export function AdminUsers() {
               key={user.id}
               className="hover:bg-[#0a0a0a] transition-colors">
 
-                <td className="px-4 py-3 font-mono text-[9px] text-[#333]">
+                <td className="px-4 py-3 font-mono text-[9px] text-[#333] whitespace-nowrap">
                   {user.id}
                 </td>
                 <td className="px-4 py-3">
@@ -420,7 +456,7 @@ export function AdminUsers() {
                     {user.email}
                   </div>
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 whitespace-nowrap">
                   <div className="inline-flex flex-col gap-1">
                     <button
                       onClick={() => setPlanHistoryTarget(user)}
@@ -437,20 +473,20 @@ export function AdminUsers() {
                     </button>
                   </div>
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 whitespace-nowrap">
                   <span
                   className={`font-mono text-[9px] font-bold px-1.5 py-0.5 tracking-widest ${statusStyle[user.status]}`}>
 
                     {user.status}
                   </span>
                 </td>
-                <td className="px-4 py-3 font-mono text-xs text-white">
+                <td className="px-4 py-3 font-mono text-xs text-white whitespace-nowrap">
                   {user.auditsPerformed} / {user.auditLimit}
                 </td>
-                <td className="px-4 py-3 font-mono text-[10px] text-[#666]">
+                <td className="px-4 py-3 font-mono text-[10px] text-[#666] whitespace-nowrap">
                   {user.joined}
                 </td>
-                <td className="px-4 py-3 font-mono text-[10px] text-[#666]">
+                <td className="px-4 py-3 font-mono text-[10px] text-[#666] whitespace-nowrap">
                   {user.lastActive}
                 </td>
                 <td className="px-4 py-3">
@@ -545,27 +581,29 @@ export function AdminUsers() {
                 </div>
             )}
             </div>
-            <div className="px-5 py-4 border-t border-[#262626] flex gap-2">
-              <button
-              onClick={() => handleSuspendToggle(viewUser)}
-              className={`flex-1 py-2.5 border font-mono text-xs font-bold tracking-widest transition-colors ${viewUser.status === 'SUSPENDED' ? 'border-[#22C55E]/40 text-[#22C55E] hover:bg-[#22C55E]/10' : 'border-[#EAB308]/40 text-[#EAB308] hover:bg-[#EAB308]/10'}`}>
+            <div className="px-5 py-4 border-t border-[#262626] flex flex-col gap-2">
+              <div className="flex gap-2">
+                <button
+                onClick={() => handleSuspendToggle(viewUser)}
+                className={`flex-1 py-2.5 border font-mono text-xs font-bold tracking-widest transition-colors ${viewUser.status === 'SUSPENDED' ? 'border-[#22C55E]/40 text-[#22C55E] hover:bg-[#22C55E]/10' : 'border-[#EAB308]/40 text-[#EAB308] hover:bg-[#EAB308]/10'}`}>
 
-                {viewUser.status === 'SUSPENDED' ?
-              'RESTORE ACCESS' :
-              'SUSPEND USER'}
-              </button>
-              <button
-              onClick={() => {
-                setDeleteTarget(viewUser);
-                setViewUser(null);
-              }}
-              className="flex-1 py-2.5 border border-[#EF4444]/30 text-[#EF4444] font-mono text-xs font-bold tracking-widest hover:bg-[#EF4444]/10 transition-colors">
+                  {viewUser.status === 'SUSPENDED' ?
+                'RESTORE ACCESS' :
+                'SUSPEND USER'}
+                </button>
+                <button
+                onClick={() => {
+                  setDeleteTarget(viewUser);
+                  setViewUser(null);
+                }}
+                className="flex-1 py-2.5 border border-[#EF4444]/30 text-[#EF4444] font-mono text-xs font-bold tracking-widest hover:bg-[#EF4444]/10 transition-colors">
 
-                DELETE
-              </button>
+                  DELETE
+                </button>
+              </div>
               <button
               onClick={() => setViewUser(null)}
-              className="flex-1 py-2.5 border border-[#262626] text-[#666] font-mono text-xs font-bold tracking-widest hover:border-[#404040] hover:text-white transition-colors">
+              className="w-full py-2.5 border border-[#262626] text-[#666] font-mono text-xs font-bold tracking-widest hover:border-[#404040] hover:text-white transition-colors">
 
                 CLOSE
               </button>
@@ -656,7 +694,7 @@ export function AdminUsers() {
               onClick={() => handleDelete(deleteTarget)}
               className="flex-1 py-2.5 bg-[#EF4444] text-white font-mono text-xs font-bold tracking-widest hover:bg-[#dc2626] transition-colors">
 
-                CONFIRM DELETE
+                DELETE
               </button>
               <button
               onClick={() => setDeleteTarget(null)}
@@ -672,7 +710,7 @@ export function AdminUsers() {
       {/* ── GENERATE TEMP USER MODAL ── */}
       {tempModal.show &&
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-          <div className="w-full max-w-md bg-[#0a0a0a] border border-[#262626] p-6 relative">
+          <div className="w-full max-w-md bg-[#0a0a0a] border border-[#262626] p-6 sm:p-8 relative mx-4 sm:mx-0">
             <button
             onClick={() => {
               setTempModal({

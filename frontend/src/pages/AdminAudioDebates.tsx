@@ -143,8 +143,8 @@ export function AdminAudioDebates() {
 
   const handleExportPdf = () => {
     exportToPdf({
-      title: 'AUDIO DEBATE REGISTRY',
-      subtitle: `${rows.length} debates - exported ${new Date().toISOString()}`,
+      title: 'AUDIO REGISTRY',
+      subtitle: `${rows.length} audio records - exported ${new Date().toISOString()}`,
       columns: ['ID', 'DOCUMENT ID', 'ROUND', 'AUDIO URL', 'CREATED'],
       rows: rows.map((d) => [
         d.id,
@@ -159,11 +159,18 @@ export function AdminAudioDebates() {
 
   return (
     <div className="p-6 min-h-full">
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <AudioLinesIcon className="w-4 h-4 text-[#EF4444]" />
-            <h1 className="font-sans text-xl font-bold text-white tracking-wide">AUDIO DEBATE REGISTRY</h1>
+      <div className="mb-3">
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <AudioLinesIcon className="w-4 h-4 text-[#EF4444]" />
+              <h1 className="font-sans text-xl font-bold text-white tracking-wide">AUDIO REGISTRY</h1>
+            </div>
+            <p className="font-mono text-[10px] text-[#404040] tracking-widest">
+              {rows.length} AUDIO RECORDS
+            </p>
+          </div>
+          <div className="hidden md:flex items-center gap-2">
             <button
               onClick={handleReload}
               disabled={loading || reloading}
@@ -172,16 +179,31 @@ export function AdminAudioDebates() {
               <RefreshCwIcon className={`w-3 h-3 ${reloading ? 'animate-spin' : ''}`} />
               REFRESH
             </button>
+            <button
+              onClick={handleExportPdf}
+              className="flex items-center gap-2 font-mono text-[9px] text-[#666] tracking-widest border border-[#262626] px-3 py-2 hover:border-[#404040] hover:text-[#999] transition-colors"
+            >
+              <DownloadIcon className="w-3 h-3" />
+              EXPORT PDF
+            </button>
           </div>
-          <p className="font-mono text-[10px] text-[#404040] tracking-widest">
-            {rows.length} AUDIO DEBATES
-          </p>
         </div>
+      </div>
+
+      <div className="flex w-full gap-2 mb-6 md:hidden">
+        <button
+          onClick={handleReload}
+          disabled={loading || reloading}
+          className="flex-1 flex items-center justify-center gap-2 font-mono text-[9px] text-[#666] tracking-widest border border-[#262626] px-3 py-2 hover:border-[#404040] hover:text-[#999] transition-colors disabled:opacity-50"
+        >
+          <RefreshCwIcon className={`w-3 h-3 ${reloading ? 'animate-spin' : ''}`} />
+          REFRESH
+        </button>
         <button
           onClick={handleExportPdf}
-          className="flex items-center gap-2 px-4 py-2.5 border border-[#262626] text-[#666] font-mono text-xs tracking-widest hover:border-[#404040] hover:text-white transition-colors"
+          className="flex-1 flex items-center justify-center gap-2 font-mono text-[9px] text-[#666] tracking-widest border border-[#262626] px-3 py-2 hover:border-[#404040] hover:text-[#999] transition-colors"
         >
-          <DownloadIcon className="w-3.5 h-3.5" />
+          <DownloadIcon className="w-3 h-3" />
           EXPORT PDF
         </button>
       </div>
@@ -211,7 +233,7 @@ export function AdminAudioDebates() {
             <p className="font-mono text-[10px] text-[#333]">NO AUDIO DEBATES FOUND</p>
           </div>
         ) : (
-          <table className="w-full">
+          <table className="w-full min-w-[1100px]">
             <thead>
               <tr className="border-b border-[#262626] bg-[#0a0a0a]">
                 <th className="px-4 py-3 text-left font-mono text-[9px] text-[#404040] tracking-widest">ID</th>
@@ -225,17 +247,17 @@ export function AdminAudioDebates() {
             <tbody className="divide-y divide-[#1a1a1a]">
               {filteredRows.map((row) => (
                 <tr key={row.id} className="hover:bg-[#0f0f0f] transition-colors">
-                  <td className="px-4 py-3 font-mono text-[10px] text-[#999]">#{row.id}</td>
+                  <td className="px-4 py-3 font-mono text-[10px] text-[#999] whitespace-nowrap">#{row.id}</td>
                   <td className="px-4 py-3">
                     <div className="font-mono text-[10px] text-white">{row.documentName}</div>
                     <div className="font-mono text-[9px] text-[#404040]">DOC #{row.documentId}</div>
                   </td>
-                  <td className="px-4 py-3 font-mono text-[10px] text-white">{row.roundNumber}</td>
+                  <td className="px-4 py-3 font-mono text-[10px] text-white whitespace-nowrap">{row.roundNumber}</td>
                   <td className="px-4 py-3">
                     <div className="font-mono text-[10px] text-white">{row.ownerName}</div>
                     <div className="font-mono text-[9px] text-[#404040]">{row.ownerEmail}</div>
                   </td>
-                  <td className="px-4 py-3 font-mono text-[10px] text-[#666]">{toDateLabel(row.createdAt)}</td>
+                  <td className="px-4 py-3 font-mono text-[10px] text-[#666] whitespace-nowrap">{toDateLabel(row.createdAt)}</td>
                   <td className="px-4 py-3">
                     {row.cloudinaryAudioURL ? (
                       <button

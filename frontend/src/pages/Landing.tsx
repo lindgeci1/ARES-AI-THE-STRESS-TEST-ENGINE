@@ -4,12 +4,8 @@ import {
   ZapIcon,
   ShieldIcon,
   SwordIcon,
-  ActivityIcon,
-  FileTextIcon,
-  ArrowRightIcon,
-  TargetIcon,
-  LockIcon } from
-'lucide-react';
+  LockIcon
+} from 'lucide-react';
 import { AuthModal } from '../components/AuthModal';
 import { authService, type PublicStats } from '../services/authService';
 const DEMO_HEATMAP_PARAGRAPHS = [
@@ -95,41 +91,40 @@ export function Landing() {
       </div>
 
       {/* Nav */}
-      <nav className="flex items-center justify-between px-8 py-4 border-b border-[#262626]">
+      <nav className="flex items-center justify-between px-3 md:px-8 py-3 border-b border-[#262626]">
         <div className="flex items-center gap-2">
           <ZapIcon className="w-4 h-4 text-[#EF4444]" />
-          <span className="font-mono text-sm font-bold tracking-widest">
+          <span className="font-mono text-sm font-bold tracking-widest whitespace-nowrap">
             ARES AI
           </span>
-          <span className="font-mono text-[9px] text-[#404040] ml-2 tracking-widest">
-            v2.4.1
-          </span>
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4 md:gap-6 overflow-x-auto whitespace-nowrap max-w-full pr-1 ml-6 md:ml-12">
           <a
             href="#concept"
-            className="font-mono text-xs text-[#666] hover:text-white tracking-wider transition-colors">
+            className="font-mono text-xs text-[#666] hover:text-white tracking-wider transition-colors flex-shrink-0">
 
             CONCEPT
           </a>
           <a
             href="#metrics"
-            className="font-mono text-xs text-[#666] hover:text-white tracking-wider transition-colors">
+            className="font-mono text-xs text-[#666] hover:text-white tracking-wider transition-colors flex-shrink-0">
 
             METRICS
           </a>
           <Link
             to="/auth"
-            className="font-mono text-xs text-[#666] hover:text-white tracking-wider transition-colors">
+            className="font-mono text-xs text-[#666] hover:text-white tracking-wider transition-colors flex-shrink-0">
 
             LOGIN
           </Link>
+          {/**
           <button
             onClick={() => setShowAuthModal(true)}
-            className="px-4 py-2 bg-[#EF4444] text-white font-mono text-xs font-bold tracking-widest hover:bg-[#dc2626] transition-colors">
+            className="px-4 py-2 bg-[#EF4444] text-white font-mono text-xs font-bold tracking-widest hover:bg-[#dc2626] transition-colors flex-shrink-0">
 
             START AUDIT
           </button>
+          */}
         </div>
       </nav>
 
@@ -158,15 +153,15 @@ export function Landing() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => setShowDemo(!showDemo)}
-              className="px-6 py-3 border border-[#3B82F6] text-[#3B82F6] font-mono text-sm font-bold tracking-widest hover:bg-[#3B82F6] hover:text-white transition-colors">
+              className="px-4 md:px-6 py-2.5 md:py-3 border border-[#3B82F6] text-[#3B82F6] font-mono text-[11px] md:text-sm font-bold tracking-wider hover:bg-[#3B82F6] hover:text-white transition-colors whitespace-nowrap">
 
               TRY DEMO
             </button>
             <button
               onClick={() => setShowAuthModal(true)}
-              className="px-6 py-3 bg-[#EF4444] text-white font-mono text-sm font-bold tracking-widest hover:bg-[#dc2626] transition-colors flex items-center gap-2">
+              className="px-4 md:px-6 py-2.5 md:py-3 bg-[#EF4444] text-white font-mono text-[11px] md:text-sm font-bold tracking-wider hover:bg-[#dc2626] transition-colors whitespace-nowrap">
 
-              START AUDIT <ArrowRightIcon className="w-4 h-4" />
+              START AUDIT
             </button>
           </div>
         </div>
@@ -243,7 +238,7 @@ export function Landing() {
             <div className="mt-4 text-center">
               <button
               onClick={() => setShowAuthModal(true)}
-              className="px-8 py-3 bg-[#EF4444] text-white font-mono text-sm font-bold tracking-widest hover:bg-[#dc2626] transition-colors">
+              className="px-4 md:px-8 py-2.5 md:py-3 bg-[#EF4444] text-white font-mono text-[11px] md:text-sm font-bold tracking-wider hover:bg-[#dc2626] transition-colors whitespace-nowrap">
 
                 RUN FULL AUDIT — SIGN IN REQUIRED
               </button>
@@ -405,27 +400,25 @@ export function Landing() {
           </p>
           <Link
             to="/auth"
-            className="inline-block px-10 py-4 bg-[#EF4444] text-white font-mono text-sm font-bold tracking-widest hover:bg-[#dc2626] transition-colors">
+            className="inline-block px-6 md:px-10 py-3 bg-[#EF4444] text-white font-mono text-[11px] md:text-sm font-bold tracking-wider hover:bg-[#dc2626] transition-colors whitespace-nowrap">
             GET STARTED
           </Link>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="px-8 py-6 border-t border-[#262626]">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
+      {/* Footer (match header spacing, font, no scroll) */}
+      <footer className="border-t border-[#262626]">
+        <div className="max-w-5xl mx-auto flex items-center justify-between px-3 md:px-8 py-3">
           <div className="flex items-center gap-2">
             <ZapIcon className="w-3 h-3 text-[#EF4444]" />
             <span className="font-mono text-xs text-[#404040] tracking-widest">
-              ARES AI © 2025
+              ARES AI © 2026
             </span>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="font-mono text-[10px] text-[#262626]">TERMS</span>
-            <span className="font-mono text-[10px] text-[#262626]">
-              PRIVACY
-            </span>
-            <span className="font-mono text-[10px] text-[#262626]">DOCS</span>
+          <div className="flex items-center gap-6">
+            <a href="/terms" className="font-mono text-xs text-[#666] hover:text-white tracking-wider transition-colors">TERMS</a>
+            <a href="/privacy" className="font-mono text-xs text-[#666] hover:text-white tracking-wider transition-colors">PRIVACY</a>
+            <a href="/docs" className="font-mono text-xs text-[#666] hover:text-white tracking-wider transition-colors">DOCS</a>
           </div>
         </div>
       </footer>

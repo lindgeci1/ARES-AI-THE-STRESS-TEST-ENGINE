@@ -46,7 +46,7 @@ export function AuthModal({ onClose }: AuthModalProps) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
       onClick={(e) => e.target === e.currentTarget && onClose()}>
 
-      <div className="w-full max-w-md bg-[#0a0a0a] border border-[#262626] p-8 relative">
+      <div className="w-full max-w-md bg-[#0a0a0a] border border-[#262626] p-6 sm:p-8 relative mx-4 sm:mx-0">
         {/* Close */}
         <button
           onClick={onClose}

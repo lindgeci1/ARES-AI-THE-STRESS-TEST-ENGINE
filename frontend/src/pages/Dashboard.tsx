@@ -92,37 +92,59 @@ export function Dashboard() {
 
   return (
     <div className="p-6 min-h-full">
-      <div className="flex items-start justify-between mb-8">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <ActivityIcon className="w-4 h-4 text-[#EF4444]" />
-            <h1 className="font-sans text-xl font-bold text-white tracking-wide">
-              COMMAND CENTER
-            </h1>
+      <div className="mb-8">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <ActivityIcon className="w-4 h-4 text-[#EF4444]" />
+              <h1 className="font-sans text-xl font-bold text-white tracking-wide">
+                COMMAND CENTER
+              </h1>
+            </div>
+            <p className="font-mono text-[10px] text-[#404040] tracking-widest">
+              {currentTime.toISOString().replace('T', ' ').slice(0, 19)} UTC
+            </p>
+          </div>
+
+          <div className="hidden md:flex items-center gap-3">
             <button
               onClick={handleReload}
               disabled={reloading}
-              className="flex items-center gap-2 font-mono text-[9px] text-[#666] tracking-widest border border-[#262626] px-3 py-2 hover:border-[#404040] hover:text-[#999] transition-colors disabled:opacity-50"
+              className="flex h-9 items-center justify-center gap-2 font-mono text-[9px] text-[#666] tracking-widest border border-[#262626] px-3 hover:border-[#404040] hover:text-[#999] transition-colors disabled:opacity-50"
             >
               <RefreshCwIcon className={`w-3 h-3 ${reloading ? 'animate-spin' : ''}`} />
               REFRESH
             </button>
-          </div>
-          <p className="font-mono text-[10px] text-[#404040] tracking-widest">
-            {currentTime.toISOString().replace('T', ' ').slice(0, 19)} UTC —
-            OPERATOR: {user?.operator_name || 'UNKNOWN'}
-          </p>
-        </div>
-        <Link
-          to="/audit/new"
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#EF4444] text-white font-mono text-xs font-bold tracking-widest hover:bg-[#dc2626] transition-colors">
+            <Link
+              to="/audit/new"
+              className="flex h-9 items-center justify-center gap-2 px-3 bg-[#EF4444] text-white font-mono text-[9px] font-bold tracking-widest hover:bg-[#dc2626] transition-colors">
 
-          <UploadIcon className="w-3.5 h-3.5" />
-          NEW AUDIT
-        </Link>
+              <UploadIcon className="w-3.5 h-3.5" />
+              NEW AUDIT
+            </Link>
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-3 md:hidden w-full">
+          <button
+            onClick={handleReload}
+            disabled={reloading}
+            className="flex h-9 w-full items-center justify-center gap-2 font-mono text-[9px] text-[#666] tracking-widest border border-[#262626] px-3 hover:border-[#404040] hover:text-[#999] transition-colors disabled:opacity-50"
+          >
+            <RefreshCwIcon className={`w-3 h-3 ${reloading ? 'animate-spin' : ''}`} />
+            REFRESH
+          </button>
+          <Link
+            to="/audit/new"
+            className="flex h-9 w-full items-center justify-center gap-2 px-3 bg-[#EF4444] text-white font-mono text-[9px] font-bold tracking-widest hover:bg-[#dc2626] transition-colors">
+
+            <UploadIcon className="w-3.5 h-3.5" />
+            NEW AUDIT
+          </Link>
+        </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-px bg-[#262626] mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-[#262626] mb-6">
         <div className="bg-[#0a0a0a] px-4 py-3">
           <div className="font-mono text-lg font-bold text-[#3B82F6]">
             {activeCount}
@@ -139,7 +161,7 @@ export function Dashboard() {
             PROCESSING
           </div>
         </div>
-        <div className="bg-[#0a0a0a] px-4 py-3">
+        <div className="col-span-2 md:col-span-1 bg-[#0a0a0a] px-4 py-3">
           <div className="font-mono text-lg font-bold text-[#666]">
             {archivedCount}
           </div>
@@ -149,12 +171,12 @@ export function Dashboard() {
         </div>
       </div>
 
-      <div className="flex items-center gap-0 mb-6 border-b border-[#262626]">
+      <div className="grid grid-cols-2 md:flex md:items-center md:gap-0 mb-6 border-b border-[#262626]">
         {(['ALL', 'ACTIVE', 'PROCESSING', 'ARCHIVED'] as const).map((f) =>
         <button
           key={f}
           onClick={() => setFilter(f)}
-          className={`px-4 py-2 font-mono text-[10px] tracking-widest transition-colors relative ${filter === f ? 'text-white' : 'text-[#404040] hover:text-[#666]'}`}>
+          className={`w-full md:w-auto px-2 sm:px-4 py-2 font-mono text-[9px] sm:text-[10px] tracking-widest transition-colors relative ${filter === f ? 'text-white' : 'text-[#404040] hover:text-[#666]'}`}>
 
             {f}
             {filter === f &&

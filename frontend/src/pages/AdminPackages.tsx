@@ -111,13 +111,15 @@ export function AdminPackages() {
   return (
     <div className="p-6 min-h-full">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-3">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
             <PackageIcon className="w-4 h-4 text-[#EF4444]" />
             <h1 className="font-sans text-xl font-bold text-white tracking-wide">
               SUBSCRIPTION PACKAGES
             </h1>
+          </div>
+          <div className="hidden md:flex items-center gap-2">
             <button
               onClick={handleReload}
               disabled={loading || reloading}
@@ -126,18 +128,36 @@ export function AdminPackages() {
               <RefreshCwIcon className={`w-3 h-3 ${reloading ? 'animate-spin' : ''}`} />
               REFRESH
             </button>
+            <button
+              onClick={handleExportPdf}
+              className="flex items-center gap-2 font-mono text-[9px] text-[#666] tracking-widest border border-[#262626] px-3 py-2 hover:border-[#404040] hover:text-[#999] transition-colors"
+            >
+              <DownloadIcon className="w-3 h-3" />
+              EXPORT PDF
+            </button>
           </div>
-          <button
-            onClick={handleExportPdf}
-            className="flex items-center gap-2 px-4 py-2.5 border border-[#262626] text-[#666] font-mono text-xs tracking-widest hover:border-[#404040] hover:text-white transition-colors"
-          >
-            <DownloadIcon className="w-3.5 h-3.5" />
-            EXPORT PDF
-          </button>
         </div>
         <p className="font-mono text-[10px] text-[#404040] tracking-wider">
           ENABLE OR DISABLE PLANS — DISABLED PLANS ARE HIDDEN FROM USERS
         </p>
+      </div>
+
+      <div className="flex w-full gap-2 mb-6 md:hidden">
+        <button
+          onClick={handleReload}
+          disabled={loading || reloading}
+          className="flex-1 flex items-center justify-center gap-2 font-mono text-[9px] text-[#666] tracking-widest border border-[#262626] px-3 py-2 hover:border-[#404040] hover:text-[#999] transition-colors disabled:opacity-50"
+        >
+          <RefreshCwIcon className={`w-3 h-3 ${reloading ? 'animate-spin' : ''}`} />
+          REFRESH
+        </button>
+        <button
+          onClick={handleExportPdf}
+          className="flex-1 flex items-center justify-center gap-2 font-mono text-[9px] text-[#666] tracking-widest border border-[#262626] px-3 py-2 hover:border-[#404040] hover:text-[#999] transition-colors"
+        >
+          <DownloadIcon className="w-3 h-3" />
+          EXPORT PDF
+        </button>
       </div>
 
       {/* Legend */}
@@ -170,16 +190,17 @@ export function AdminPackages() {
       ) : (
         <>
           {/* Offer cards grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-[#262626] mb-8">
-            {offers.map((offer) => {
-              const isLocked = offer.tier === 1;
-              return (
-                <div
-                  key={offer.id}
-                  className={`bg-[#0a0a0a] p-6 flex flex-col relative ${
-                    !offer.is_active ? 'opacity-50' : ''
-                  }`}
-                >
+          <div className="overflow-x-auto md:overflow-visible mb-8">
+            <div className="grid grid-flow-col auto-cols-[18rem] grid-rows-3 gap-px bg-[#262626] min-w-[720px] md:min-w-0 md:grid-flow-row md:auto-cols-auto md:grid-cols-3 md:grid-rows-1">
+              {offers.map((offer) => {
+                const isLocked = offer.tier === 1;
+                return (
+                  <div
+                    key={offer.id}
+                    className={`bg-[#0a0a0a] p-6 flex flex-col relative ${
+                      !offer.is_active ? 'opacity-50' : ''
+                    }`}
+                  >
                   {/* Top accent line */}
                   <div
                     className="absolute top-0 left-0 right-0 h-0.5"
@@ -293,25 +314,27 @@ export function AdminPackages() {
                       </span>
                     </div>
                   )}
-                </div>
-              );
-            })}
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {/* Table view */}
-          <div className="border border-[#262626]">
-            <div className="px-4 py-3 border-b border-[#262626] flex items-center justify-between">
-              <span className="font-mono text-[10px] text-[#666] tracking-widest">ALL PACKAGES — STATUS OVERVIEW</span>
-              <span className="font-mono text-[9px] text-[#404040] tracking-widest">
-                {offers.filter((o) => o.is_active).length} ACTIVE /&nbsp;
-                {offers.filter((o) => !o.is_active).length} DISABLED
-              </span>
-            </div>
-            <div className="divide-y divide-[#1a1a1a]">
-              {offers.map((offer) => {
-                const isLocked = offer.tier === 1;
-                return (
-                  <div key={offer.id} className="flex items-center gap-4 px-4 py-3">
+          <div className="border border-[#262626] overflow-x-auto">
+            <div className="min-w-[720px]">
+              <div className="px-4 py-3 border-b border-[#262626] flex items-center justify-between">
+                <span className="font-mono text-[10px] text-[#666] tracking-widest">ALL PACKAGES — STATUS OVERVIEW</span>
+                <span className="font-mono text-[9px] text-[#404040] tracking-widest">
+                  {offers.filter((o) => o.is_active).length} ACTIVE /&nbsp;
+                  {offers.filter((o) => !o.is_active).length} DISABLED
+                </span>
+              </div>
+              <div className="divide-y divide-[#1a1a1a]">
+                {offers.map((offer) => {
+                  const isLocked = offer.tier === 1;
+                  return (
+                    <div key={offer.id} className="flex items-center gap-4 px-4 py-3">
                     {/* Color dot */}
                     <div
                       className="w-2 h-2 flex-shrink-0"
@@ -386,9 +409,10 @@ export function AdminPackages() {
                         </>
                       )}
                     </div>
-                  </div>
-                );
-              })}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </>
