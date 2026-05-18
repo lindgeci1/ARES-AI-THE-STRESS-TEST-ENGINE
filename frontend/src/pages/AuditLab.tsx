@@ -40,21 +40,23 @@ function asArray<T>(value: unknown): T[] {
 }
 
 function WaveformBar({ color, delay, isActive }: {color: string;delay: number;isActive: boolean;}) {
+  const waveName = color === '#EF4444' ? 'wave-red' : color === '#3B82F6' ? 'wave-blue' : 'wave-gray';
+  const duration = 0.5 + Math.random() * 0.8;
+  const opacity = isActive ? 0.7 + Math.random() * 0.3 : 0.15;
+
   return (
     <div
-      className="w-1 flex-shrink-0"
+      className="w-[2px] sm:w-1 h-full flex-shrink-0 origin-bottom"
       style={{
         backgroundColor: color,
-        height: `${8 + Math.random() * 32}px`,
-        animation:
-        isActive ?
-        `${color === '#EF4444' ? 'wave-red' : color === '#3B82F6' ? 'wave-blue' : 'wave-gray'} ${0.5 + Math.random() * 0.8}s ease-in-out infinite` :
-        'none',
+        animationName: isActive ? waveName : 'none',
+        animationDuration: `${duration}s`,
+        animationTimingFunction: 'ease-in-out',
+        animationIterationCount: 'infinite',
         animationDelay: `${delay}ms`,
-        opacity: isActive ? 0.7 + Math.random() * 0.3 : 0.15
+        opacity,
+        transform: isActive ? undefined : 'scaleY(0.25)'
       }} />);
-
-
 }
 
 function parseTranscript(transcript: unknown): BattleEntry[] {
@@ -190,6 +192,8 @@ export function AuditLab() {
 
   // ── AUDIT LAB STATE ──
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isAudioCollapsed, setIsAudioCollapsed] = useState(false);
+  const [isBattleLogCollapsed, setIsBattleLogCollapsed] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [audioProgress, setAudioProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState('00:00:00');
@@ -204,8 +208,10 @@ export function AuditLab() {
   const reAuditFileRef = useRef<HTMLInputElement>(null);
   const [activeHeat, setActiveHeat] = useState<string | null>(null);
   const [openAccordions, setOpenAccordions] = useState<Set<string>>(
-    new Set(['VLN-001'])
+    new Set()
   );
+  const [isDiagContentVisible, setIsDiagContentVisible] = useState(true);
+  const [isSmallScreen, setIsSmallScreen] = useState(false);
   const [showDiagnostic, setShowDiagnostic] = useState(false);
   const auditReports = document?.audit_reports || [];
   const audioDebates = document?.audio_debates || [];
@@ -352,6 +358,22 @@ export function AuditLab() {
       audioRef.current.currentTime = 0;
     }
   }, [selectedRound]);
+
+  useEffect(() => {
+    if (showDiagnostic && window.innerWidth < 768) {
+      setOpenAccordions(new Set());
+      setIsDiagContentVisible(false);
+    }
+  }, [showDiagnostic]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsSmallScreen(window.innerWidth < 768);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const toggleAccordion = (accordionId: string) => {
     setOpenAccordions((prev) => {
       const next = new Set(prev);
@@ -389,6 +411,237 @@ export function AuditLab() {
     icon: WrenchIcon,
     count: fortification.length
   }];
+
+  const renderDiagnosticContent = (tabId: DiagnosticTab) => (
+    <div className="max-h-[420px] overflow-y-auto battle-log">
+      {tabId === 'vulnerabilities' &&
+      <div className="divide-y divide-[#1a1a1a]">
+          {vulnerabilities.map((v) =>
+        <div key={v.id} className="bg-[#050505]">
+                    <button
+                  onClick={() => toggleAccordion(v.id)}
+                  className="w-full flex items-center gap-4 px-6 py-4 text-left hover:bg-[#0a0a0a] transition-colors flex-nowrap overflow-x-auto md:overflow-visible">
+
+                <span
+              className={`font-mono text-[9px] font-bold px-2 py-0.5 tracking-widest flex-shrink-0 whitespace-nowrap ${v.severity === 'CRITICAL' ? 'text-[#EF4444] bg-[#EF4444]/10 border border-[#EF4444]/20' : v.severity === 'HIGH' ? 'text-[#EAB308] bg-[#EAB308]/10 border border-[#EAB308]/20' : 'text-[#3B82F6] bg-[#3B82F6]/10 border border-[#3B82F6]/20'}`}>
+
+                  {v.severity}
+                </span>
+                <span className="font-mono text-[9px] text-[#333] flex-shrink-0 whitespace-nowrap">
+                  {v.id}
+                </span>
+                <span className="font-mono text-[10px] text-[#666] flex-shrink-0 whitespace-nowrap">
+                  {v.section}
+                </span>
+                <span className="font-sans text-xs text-white font-medium whitespace-nowrap">
+                  {v.title}
+                </span>
+                {openAccordions.has(v.id) ?
+          <ChevronDownIcon className="w-3.5 h-3.5 text-[#404040] flex-shrink-0" /> :
+
+          <ChevronRightIcon className="w-3.5 h-3.5 text-[#404040] flex-shrink-0" />
+          }
+              </button>
+              {openAccordions.has(v.id) &&
+        <div className="px-6 pb-5 bg-[#080808] border-t border-[#1a1a1a]">
+                  <div className="pt-4 space-y-3">
+                    <div>
+                      <div className="font-mono text-[9px] text-[#EF4444] tracking-widest mb-2">
+                        {'// ANALYSIS'}
+                      </div>
+                      <p className="font-mono text-[10px] text-[#888] leading-relaxed">
+                        {v.detail}
+                      </p>
+                    </div>
+                    <div className="border-l-2 border-[#262626] pl-4">
+                      <div className="font-mono text-[9px] text-[#404040] tracking-widest mb-1">
+                        LEGAL PRECEDENT
+                      </div>
+                      <p className="font-mono text-[10px] text-[#555] italic">
+                        {v.precedent}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+        }
+            </div>
+      )}
+        </div>
+    }
+
+      {tabId === 'fallacies' &&
+      <div className="divide-y divide-[#1a1a1a]">
+          {fallacies.map((f) =>
+        <div key={f.id} className="bg-[#050505]">
+                    <button
+                  onClick={() => toggleAccordion(f.id)}
+                  className="w-full flex items-center gap-4 px-6 py-4 text-left hover:bg-[#0a0a0a] transition-colors flex-nowrap overflow-x-auto md:overflow-visible">
+
+                <span className="font-mono text-[9px] font-bold px-2 py-0.5 tracking-widest flex-shrink-0 whitespace-nowrap text-[#EAB308] bg-[#EAB308]/10 border border-[#EAB308]/20">
+                  {f.type}
+                </span>
+                <span className="font-mono text-[9px] text-[#333] flex-shrink-0 whitespace-nowrap">
+                  {f.id}
+                </span>
+                <span className="font-mono text-[10px] text-[#666] flex-shrink-0 whitespace-nowrap">
+                  {f.sections}
+                </span>
+                <span className="font-sans text-xs text-white font-medium whitespace-nowrap">
+                  {f.title}
+                </span>
+                {openAccordions.has(f.id) ?
+          <ChevronDownIcon className="w-3.5 h-3.5 text-[#404040] flex-shrink-0" /> :
+
+          <ChevronRightIcon className="w-3.5 h-3.5 text-[#404040] flex-shrink-0" />
+          }
+              </button>
+              {openAccordions.has(f.id) &&
+        <div className="px-6 pb-5 bg-[#080808] border-t border-[#1a1a1a]">
+                  <div className="pt-4">
+                    <div className="font-mono text-[9px] text-[#EAB308] tracking-widest mb-2">
+                      {'// CONTRADICTION ANALYSIS'}
+                    </div>
+                    <p className="font-mono text-[10px] text-[#888] leading-relaxed">
+                      {f.detail}
+                    </p>
+                  </div>
+                </div>
+        }
+            </div>
+      )}
+        </div>
+    }
+
+      {tabId === 'fortification' &&
+      <div className="divide-y divide-[#1a1a1a]">
+          {/*
+          <div className="px-6 py-3 bg-[#080808] flex items-center gap-3 flex-wrap">
+            <span className="font-mono text-[9px] text-[#333]">—</span>
+            <div className="ml-auto flex items-center gap-2">
+              <span className="font-mono text-[9px] text-[#EF4444] bg-[#EF4444]/10 border border-[#EF4444]/20 px-1.5 py-0.5">
+                {
+            fortification.filter((f) => f.priority === 'CRITICAL').
+            length
+            }{' '}
+                CRITICAL
+              </span>
+              <span className="font-mono text-[9px] text-[#EAB308] bg-[#EAB308]/10 border border-[#EAB308]/20 px-1.5 py-0.5">
+                {
+            fortification.filter((f) => f.priority === 'HIGH').
+            length
+            }{' '}
+                HIGH
+              </span>
+              <span className="font-mono text-[9px] text-[#3B82F6] bg-[#3B82F6]/10 border border-[#3B82F6]/20 px-1.5 py-0.5">
+                {
+            fortification.filter((f) => f.priority === 'MEDIUM').
+            length
+            }{' '}
+                MEDIUM
+              </span>
+            </div>
+          </div>
+          */}
+          {fortification.map((f) =>
+      <div key={f.step} className="bg-[#050505]">
+                    <button
+                  onClick={() => toggleAccordion(`fort-${f.step}`)}
+                  className="w-full flex items-center gap-4 px-6 py-4 text-left hover:bg-[#0a0a0a] transition-colors flex-nowrap overflow-x-auto md:overflow-visible">
+
+                <span className="font-mono text-lg font-bold text-[#262626] flex-shrink-0 w-8 whitespace-nowrap">
+                  {f.step}
+                </span>
+                <span
+            className={`font-mono text-[9px] font-bold px-2 py-0.5 tracking-widest flex-shrink-0 whitespace-nowrap ${f.priority === 'CRITICAL' ? 'text-[#EF4444] bg-[#EF4444]/10 border border-[#EF4444]/20' : f.priority === 'HIGH' ? 'text-[#EAB308] bg-[#EAB308]/10 border border-[#EAB308]/20' : 'text-[#3B82F6] bg-[#3B82F6]/10 border border-[#3B82F6]/20'}`}>
+
+                  {f.priority}
+                </span>
+                <span className="font-sans text-xs text-white font-medium whitespace-nowrap">
+                  {f.title}
+                </span>
+                <div className="hidden lg:flex items-center gap-1 flex-shrink-0">
+                  {f.fixes.map((fix) =>
+            <span
+              key={fix}
+              className={`font-mono text-[8px] font-bold px-1.5 py-0.5 tracking-widest ${fix.startsWith('VLN') ? 'text-[#EF4444] bg-[#EF4444]/10 border border-[#EF4444]/20' : 'text-[#EAB308] bg-[#EAB308]/10 border border-[#EAB308]/20'}`}>
+
+                      {fix}
+                    </span>
+            )}
+                </div>
+                        {openAccordions.has(`fort-${f.step}`) ?
+                      <ChevronDownIcon className="w-3.5 h-3.5 text-[#404040] flex-shrink-0" /> :
+
+                      <ChevronRightIcon className="w-3.5 h-3.5 text-[#404040] flex-shrink-0" />
+                      }
+              </button>
+              {openAccordions.has(`fort-${f.step}`) &&
+        <div className="px-6 pb-5 bg-[#080808] border-t border-[#1a1a1a]">
+                  <div className="pt-4 space-y-4">
+                    <div>
+                      <div className="font-mono text-[9px] text-[#404040] tracking-widest mb-2">
+                        RESOLVES
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {f.fixes.map((fix) => {
+                  const isVuln = fix.startsWith('VLN');
+                  const label = isVuln ?
+                      vulnerabilities.find((v) => v.id === fix)?.
+                  title :
+                      fallacies.find((fa) => fa.id === fix)?.title;
+                  return (
+                    <div
+                      key={fix}
+                      className={`flex items-center gap-2 px-3 py-1.5 border ${isVuln ? 'border-[#EF4444]/20 bg-[#EF4444]/5' : 'border-[#EAB308]/20 bg-[#EAB308]/5'}`}>
+
+                              <span
+                        className={`font-mono text-[8px] font-bold tracking-widest ${isVuln ? 'text-[#EF4444]' : 'text-[#EAB308]'}`}>
+
+                                {fix}
+                              </span>
+                              <span className="font-mono text-[9px] text-[#555] break-words">
+                                {label ?? fix}
+                              </span>
+                            </div>);
+
+                })}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="font-mono text-[9px] text-[#22C55E] tracking-widest mb-2">
+                        {'// REWRITE INSTRUCTIONS'}
+                      </div>
+                      <p className="font-mono text-[10px] text-[#888] leading-relaxed">
+                        {f.action}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-6 pt-2 border-t border-[#1a1a1a]">
+                      <div>
+                        <span className="font-mono text-[9px] text-[#404040] tracking-widest">
+                          EFFORT:{' '}
+                        </span>
+                        <span className="font-mono text-[9px] text-white font-bold">
+                          {f.effort}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-mono text-[9px] text-[#404040] tracking-widest">
+                          IMPACT:{' '}
+                        </span>
+                        <span className="font-mono text-[9px] text-[#22C55E] font-bold">
+                          {f.impact}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+        }
+            </div>
+      )}
+        </div>
+    }
+    </div>
+  );
 
   if (!id) {
     return (
@@ -573,21 +826,19 @@ export function AuditLab() {
 
   // ── MAIN AUDIT LAB UI ──
   return (
-    <div className="flex flex-col h-full bg-[#050505]">
+    <div className="flex flex-col h-full bg-[#050505] overflow-y-auto md:overflow-hidden">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#262626] flex-shrink-0">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 px-4 py-3 border-b border-[#262626] flex-shrink-0 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-center gap-3 flex-wrap">
           <ZapIcon className="w-3.5 h-3.5 text-[#EF4444]" />
           <span className="font-mono text-xs text-white tracking-wider font-bold">
             AUDIT LAB
           </span>
-          <span className="font-mono text-[10px] text-[#404040]">—</span>
-          <span className="font-mono text-[10px] text-[#666]">{id}</span>
-          <span className="font-mono text-[9px] text-[#3B82F6] bg-[#3B82F6]/10 border border-[#3B82F6]/20 px-1.5 py-0.5">
+          {/*
+          <span className="hidden md:inline font-mono text-[9px] text-[#3B82F6] bg-[#3B82F6]/10 border border-[#3B82F6]/20 px-1.5 py-0.5">
             {(document?.status || 'pending').toUpperCase()}
           </span>
-        </div>
-        <div className="flex items-center gap-4">
+          */}
           <div className="flex items-center gap-2">
             <span className="font-mono text-[9px] text-[#404040] tracking-widest">ROUND</span>
             <select
@@ -601,44 +852,21 @@ export function AuditLab() {
                 </option>
               ))}
             </select>
-            <span className="font-mono text-[9px] text-[#404040]">/ {maxRounds}</span>
+            <span className="font-mono text-[10px] text-[#999]">/ {maxRounds}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[9px] text-[#666] tracking-widest">
-              SURVIVAL
-            </span>
-            <span
-              className="font-mono text-sm font-bold"
-              style={{
-                color: scoreColor
-              }}>
-
-              {survivalScore !== null ? `${survivalScore}%` : 'N/A'}
-            </span>
-          </div>
-          <div className="w-24 h-1 bg-[#1a1a1a]">
-            {survivalScore !== null && (
-              <div
-                className="h-full"
-                style={{
-                  width: `${survivalScore}%`,
-                  backgroundColor: scoreColor
-                }} />
-            )}
-
-          </div>
-          <span className="font-mono text-[9px] text-[#404040]">ROUND {displayRound}/{maxRounds}</span>
+        </div>
+        <div className="flex flex-row gap-2 w-full lg:w-auto lg:flex-row lg:items-center lg:gap-4">
           <button
             onClick={() => setShowReAudit(true)}
             disabled={!canReAudit}
-            className="flex items-center gap-2 px-3 py-1.5 border border-[#3B82F6] text-[#3B82F6] hover:bg-[#3B82F6]/10 transition-colors font-mono text-[10px] font-bold tracking-widest disabled:opacity-30 disabled:cursor-not-allowed"
+            className="flex items-center justify-center gap-2 px-3 py-1 border border-[#3B82F6] text-[#3B82F6] hover:bg-[#3B82F6]/10 transition-colors font-mono text-[10px] font-bold tracking-widest disabled:opacity-30 disabled:cursor-not-allowed w-1/2 lg:w-auto"
           >
             <RefreshCwIcon className="w-3 h-3" />
             RE-AUDIT
           </button>
           <button
             onClick={() => setShowDiagnostic(!showDiagnostic)}
-            className={`flex items-center gap-2 px-3 py-1.5 font-mono text-[10px] font-bold tracking-widest border transition-colors ${showDiagnostic ? 'bg-[#EF4444] border-[#EF4444] text-white' : 'border-[#EF4444] text-[#EF4444] hover:bg-[#EF4444]/10'}`}>
+            className={`flex items-center justify-center gap-2 px-3 py-1 font-mono text-[10px] font-bold tracking-widest border transition-colors w-1/2 lg:w-auto whitespace-nowrap ${showDiagnostic ? 'bg-[#EF4444] border-[#EF4444] text-white' : 'border-[#EF4444] text-[#EF4444] hover:bg-[#EF4444]/10'}`}>
 
             DIAGNOSTIC REPORT
           </button>
@@ -650,292 +878,93 @@ export function AuditLab() {
       <div className="border-b border-[#262626] bg-[#080808] flex-shrink-0">
           <div className="px-6 py-4 border-b border-[#262626] flex items-start justify-between">
             <div>
+              {/*
               <div className="flex items-center gap-3 mb-1">
                 <div className="w-2 h-2 bg-[#EF4444]" />
                 <span className="font-mono text-[9px] text-[#EF4444] tracking-widest font-bold">
                   CLASSIFICATION: RESTRICTED — OPERATOR EYES ONLY
                 </span>
               </div>
+              */}
               <h2 className="font-sans text-base font-bold text-white tracking-wide">
                 DETAILED DIAGNOSTIC REPORT
               </h2>
+              {/*
               <p className="font-mono text-[9px] text-[#404040] mt-1 tracking-wider">
                 DOC: {document?.file_name} · AUDIT ID: {id} · ROUND: {displayRound}/{maxRounds} · GENERATED: {currentAuditReport?.created_at ? `${new Date(currentAuditReport.created_at).toISOString().replace('T', ' ').slice(0, 19)} UTC` : 'N/A'}
               </p>
+              */}
             </div>
             <div className="text-right">
-              <div className="font-mono text-[9px] text-[#404040] tracking-widest mb-1">
+              <div className="font-mono text-[10px] text-[#404040] tracking-widest leading-none mb-1">
                 OVERALL RESILIENCE
               </div>
               <div
-              className="font-mono text-3xl font-bold"
-              style={{
-                color: scoreColor
-              }}>
+                className="font-mono text-base font-bold leading-none"
+                style={{
+                  color: scoreColor
+                }}>
 
                 {survivalScore !== null ? `${survivalScore}%` : 'N/A'}
               </div>
+              {/*
+              <div className="mt-2 w-24 h-1 bg-[#1a1a1a] ml-auto">
+                {survivalScore !== null && (
+                  <div
+                    className="h-full"
+                    style={{
+                      width: `${survivalScore}%`,
+                      backgroundColor: scoreColor
+                    }} />
+                )}
+
+              </div>
+              */}
+              {/*
               <div className="font-mono text-[9px] text-[#EAB308] tracking-widest">
                 {scoreLabel === 'N/A' ? 'N/A' : `${scoreLabel} RISK`}
               </div>
+              */}
             </div>
           </div>
 
-          <div className="flex border-b border-[#262626]">
+          <div className="grid grid-cols-1 md:flex border-b border-[#262626]">
             {TABS.map(({ id: tabId, label, icon: Icon, count }) =>
-          <button
-            key={tabId}
-            onClick={() => setActiveTab(tabId)}
-            className={`flex items-center gap-2 px-5 py-3 font-mono text-[10px] tracking-widest transition-colors relative flex-shrink-0 ${activeTab === tabId ? 'text-white' : 'text-[#404040] hover:text-[#666]'}`}>
+          <div key={tabId} className="w-full">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (activeTab === tabId && isDiagContentVisible) {
+                      setIsDiagContentVisible(false);
+                      return;
+                    }
+                    setActiveTab(tabId);
+                    setIsDiagContentVisible(true);
+                  }}
+                  className={`flex items-center gap-2 px-4 py-3 font-mono text-[10px] tracking-widest transition-colors relative flex-shrink-0 w-full md:w-auto ${activeTab === tabId && isDiagContentVisible ? 'text-white' : 'text-[#404040] hover:text-[#666]'}`}>
 
-                <Icon className="w-3 h-3" />
-                {label}
-                <span
-              className={`font-mono text-[9px] px-1.5 py-0.5 font-bold ${activeTab === tabId ? tabId === 'vulnerabilities' ? 'text-[#EF4444] bg-[#EF4444]/10' : tabId === 'fallacies' ? 'text-[#EAB308] bg-[#EAB308]/10' : 'text-[#22C55E] bg-[#22C55E]/10' : 'text-[#333] bg-[#1a1a1a]'}`}>
+                  <Icon className="w-3 h-3" />
+                  {label}
+                  <span
+                className={`font-mono text-[9px] px-1.5 py-0.5 font-bold ${activeTab === tabId && isDiagContentVisible ? tabId === 'vulnerabilities' ? 'text-[#EF4444] bg-[#EF4444]/10' : tabId === 'fallacies' ? 'text-[#EAB308] bg-[#EAB308]/10' : 'text-[#22C55E] bg-[#22C55E]/10' : 'text-[#333] bg-[#1a1a1a]'}`}>
 
-                  {count}
-                </span>
-                {activeTab === tabId &&
-            <div
-              className={`absolute bottom-0 left-0 right-0 h-0.5 ${tabId === 'vulnerabilities' ? 'bg-[#EF4444]' : tabId === 'fallacies' ? 'bg-[#EAB308]' : 'bg-[#22C55E]'}`} />
+                    {count}
+                  </span>
+                  {activeTab === tabId && isDiagContentVisible &&
+              <div
+                className={`absolute bottom-0 left-0 right-0 h-0.5 ${tabId === 'vulnerabilities' ? 'bg-[#EF4444]' : tabId === 'fallacies' ? 'bg-[#EAB308]' : 'bg-[#22C55E]'}`} />
 
-            }
-              </button>
+              }
+                </button>
+                <div className={`md:hidden ${activeTab === tabId && isDiagContentVisible ? 'block' : 'hidden'}`}>
+                  {renderDiagnosticContent(tabId)}
+                </div>
+              </div>
           )}
           </div>
 
-          <div className="max-h-[420px] overflow-y-auto battle-log">
-            {activeTab === 'vulnerabilities' &&
-          <div className="divide-y divide-[#1a1a1a]">
-                {vulnerabilities.map((v) =>
-            <div key={v.id} className="bg-[#050505]">
-                    <button
-                onClick={() => toggleAccordion(v.id)}
-                className="w-full flex items-center gap-4 px-6 py-4 text-left hover:bg-[#0a0a0a] transition-colors">
-
-                      <span
-                  className={`font-mono text-[9px] font-bold px-2 py-0.5 tracking-widest flex-shrink-0 ${v.severity === 'CRITICAL' ? 'text-[#EF4444] bg-[#EF4444]/10 border border-[#EF4444]/20' : v.severity === 'HIGH' ? 'text-[#EAB308] bg-[#EAB308]/10 border border-[#EAB308]/20' : 'text-[#3B82F6] bg-[#3B82F6]/10 border border-[#3B82F6]/20'}`}>
-
-                        {v.severity}
-                      </span>
-                      <span className="font-mono text-[9px] text-[#333] flex-shrink-0">
-                        {v.id}
-                      </span>
-                      <span className="font-mono text-[10px] text-[#666] flex-shrink-0">
-                        {v.section}
-                      </span>
-                      <span className="font-sans text-xs text-white font-medium flex-1">
-                        {v.title}
-                      </span>
-                      {openAccordions.has(v.id) ?
-                <ChevronDownIcon className="w-3.5 h-3.5 text-[#404040] flex-shrink-0" /> :
-
-                <ChevronRightIcon className="w-3.5 h-3.5 text-[#404040] flex-shrink-0" />
-                }
-                    </button>
-                    {openAccordions.has(v.id) &&
-              <div className="px-6 pb-5 bg-[#080808] border-t border-[#1a1a1a]">
-                        <div className="pt-4 space-y-3">
-                          <div>
-                            <div className="font-mono text-[9px] text-[#EF4444] tracking-widest mb-2">
-                              {'// ANALYSIS'}
-                            </div>
-                            <p className="font-mono text-[10px] text-[#888] leading-relaxed">
-                              {v.detail}
-                            </p>
-                          </div>
-                          <div className="border-l-2 border-[#262626] pl-4">
-                            <div className="font-mono text-[9px] text-[#404040] tracking-widest mb-1">
-                              LEGAL PRECEDENT
-                            </div>
-                            <p className="font-mono text-[10px] text-[#555] italic">
-                              {v.precedent}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-              }
-                  </div>
-            )}
-              </div>
-          }
-
-            {activeTab === 'fallacies' &&
-          <div className="divide-y divide-[#1a1a1a]">
-                {fallacies.map((f) =>
-            <div key={f.id} className="bg-[#050505]">
-                    <button
-                onClick={() => toggleAccordion(f.id)}
-                className="w-full flex items-center gap-4 px-6 py-4 text-left hover:bg-[#0a0a0a] transition-colors">
-
-                      <span className="font-mono text-[9px] font-bold px-2 py-0.5 tracking-widest flex-shrink-0 text-[#EAB308] bg-[#EAB308]/10 border border-[#EAB308]/20">
-                        {f.type}
-                      </span>
-                      <span className="font-mono text-[9px] text-[#333] flex-shrink-0">
-                        {f.id}
-                      </span>
-                      <span className="font-mono text-[10px] text-[#666] flex-shrink-0">
-                        {f.sections}
-                      </span>
-                      <span className="font-sans text-xs text-white font-medium flex-1">
-                        {f.title}
-                      </span>
-                      {openAccordions.has(f.id) ?
-                <ChevronDownIcon className="w-3.5 h-3.5 text-[#404040] flex-shrink-0" /> :
-
-                <ChevronRightIcon className="w-3.5 h-3.5 text-[#404040] flex-shrink-0" />
-                }
-                    </button>
-                    {openAccordions.has(f.id) &&
-              <div className="px-6 pb-5 bg-[#080808] border-t border-[#1a1a1a]">
-                        <div className="pt-4">
-                          <div className="font-mono text-[9px] text-[#EAB308] tracking-widest mb-2">
-                            {'// CONTRADICTION ANALYSIS'}
-                          </div>
-                          <p className="font-mono text-[10px] text-[#888] leading-relaxed">
-                            {f.detail}
-                          </p>
-                        </div>
-                      </div>
-              }
-                  </div>
-            )}
-              </div>
-          }
-
-            {activeTab === 'fortification' &&
-          <div className="divide-y divide-[#1a1a1a]">
-                <div className="px-6 py-3 bg-[#080808] flex items-center gap-3 flex-wrap">
-                  <span className="font-mono text-[9px] text-[#22C55E] tracking-widest">
-                    {'// MASTER REMEDIATION CHECKLIST'}
-                  </span>
-                  <span className="font-mono text-[9px] text-[#333]">—</span>
-                  <span className="font-mono text-[9px] text-[#333] tracking-wider">
-                    ADDRESSES ALL {vulnerabilities.length} VULNERABILITIES + ALL{' '}
-                    {fallacies.length} LOGICAL FALLACIES
-                  </span>
-                  <div className="ml-auto flex items-center gap-2">
-                    <span className="font-mono text-[9px] text-[#EF4444] bg-[#EF4444]/10 border border-[#EF4444]/20 px-1.5 py-0.5">
-                      {
-                  fortification.filter((f) => f.priority === 'CRITICAL').
-                  length
-                  }{' '}
-                      CRITICAL
-                    </span>
-                    <span className="font-mono text-[9px] text-[#EAB308] bg-[#EAB308]/10 border border-[#EAB308]/20 px-1.5 py-0.5">
-                      {
-                  fortification.filter((f) => f.priority === 'HIGH').
-                  length
-                  }{' '}
-                      HIGH
-                    </span>
-                    <span className="font-mono text-[9px] text-[#3B82F6] bg-[#3B82F6]/10 border border-[#3B82F6]/20 px-1.5 py-0.5">
-                      {
-                  fortification.filter((f) => f.priority === 'MEDIUM').
-                  length
-                  }{' '}
-                      MEDIUM
-                    </span>
-                  </div>
-                </div>
-                {fortification.map((f) =>
-            <div key={f.step} className="bg-[#050505]">
-                    <button
-                onClick={() => toggleAccordion(`fort-${f.step}`)}
-                className="w-full flex items-center gap-4 px-6 py-4 text-left hover:bg-[#0a0a0a] transition-colors">
-
-                      <span className="font-mono text-lg font-bold text-[#262626] flex-shrink-0 w-8">
-                        {f.step}
-                      </span>
-                      <span
-                  className={`font-mono text-[9px] font-bold px-2 py-0.5 tracking-widest flex-shrink-0 ${f.priority === 'CRITICAL' ? 'text-[#EF4444] bg-[#EF4444]/10 border border-[#EF4444]/20' : f.priority === 'HIGH' ? 'text-[#EAB308] bg-[#EAB308]/10 border border-[#EAB308]/20' : 'text-[#3B82F6] bg-[#3B82F6]/10 border border-[#3B82F6]/20'}`}>
-
-                        {f.priority}
-                      </span>
-                      <span className="font-sans text-xs text-white font-medium flex-1">
-                        {f.title}
-                      </span>
-                      <div className="hidden lg:flex items-center gap-1 flex-shrink-0">
-                        {f.fixes.map((fix) =>
-                  <span
-                    key={fix}
-                    className={`font-mono text-[8px] font-bold px-1.5 py-0.5 tracking-widest ${fix.startsWith('VLN') ? 'text-[#EF4444] bg-[#EF4444]/10 border border-[#EF4444]/20' : 'text-[#EAB308] bg-[#EAB308]/10 border border-[#EAB308]/20'}`}>
-
-                            {fix}
-                          </span>
-                  )}
-                      </div>
-                      {openAccordions.has(`fort-${f.step}`) ?
-                <ChevronDownIcon className="w-3.5 h-3.5 text-[#404040] flex-shrink-0" /> :
-
-                <ChevronRightIcon className="w-3.5 h-3.5 text-[#404040] flex-shrink-0" />
-                }
-                    </button>
-                    {openAccordions.has(`fort-${f.step}`) &&
-              <div className="px-6 pb-5 bg-[#080808] border-t border-[#1a1a1a]">
-                        <div className="pt-4 space-y-4">
-                          <div>
-                            <div className="font-mono text-[9px] text-[#404040] tracking-widest mb-2">
-                              RESOLVES
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {f.fixes.map((fix) => {
-                        const isVuln = fix.startsWith('VLN');
-                        const label = isVuln ?
-                            vulnerabilities.find((v) => v.id === fix)?.
-                        title :
-                            fallacies.find((fa) => fa.id === fix)?.title;
-                        return (
-                          <div
-                            key={fix}
-                            className={`flex items-center gap-2 px-3 py-1.5 border ${isVuln ? 'border-[#EF4444]/20 bg-[#EF4444]/5' : 'border-[#EAB308]/20 bg-[#EAB308]/5'}`}>
-
-                                    <span
-                              className={`font-mono text-[8px] font-bold tracking-widest ${isVuln ? 'text-[#EF4444]' : 'text-[#EAB308]'}`}>
-
-                                      {fix}
-                                    </span>
-                                    <span className="font-mono text-[9px] text-[#555]">
-                                      {label ?? fix}
-                                    </span>
-                                  </div>);
-
-                      })}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="font-mono text-[9px] text-[#22C55E] tracking-widest mb-2">
-                              {'// REWRITE INSTRUCTIONS'}
-                            </div>
-                            <p className="font-mono text-[10px] text-[#888] leading-relaxed">
-                              {f.action}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-6 pt-2 border-t border-[#1a1a1a]">
-                            <div>
-                              <span className="font-mono text-[9px] text-[#404040] tracking-widest">
-                                EFFORT:{' '}
-                              </span>
-                              <span className="font-mono text-[9px] text-white font-bold">
-                                {f.effort}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="font-mono text-[9px] text-[#404040] tracking-widest">
-                                IMPACT:{' '}
-                              </span>
-                              <span className="font-mono text-[9px] text-[#22C55E] font-bold">
-                                {f.impact}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-              }
-                  </div>
-            )}
-              </div>
-          }
+          <div className="hidden md:block">
+            {isDiagContentVisible && renderDiagnosticContent(activeTab)}
           </div>
         </div>
       }
@@ -947,16 +976,16 @@ export function AuditLab() {
         </div>
       )}
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-col md:flex-row flex-1 overflow-visible md:overflow-hidden md:overflow-y-auto">
         {/* LEFT PANE: Document Heatmap */}
-        <div className="w-1/2 flex flex-col border-r border-[#262626]">
+        <div className="w-full md:w-1/2 flex flex-col border-b md:border-b-0 md:border-r border-[#262626] min-h-[400px] md:min-h-0">
           <div className="flex items-center justify-between px-4 py-2 border-b border-[#262626] flex-shrink-0">
             <span className="font-mono text-[10px] text-[#666] tracking-widest">
               DOCUMENT HEATMAP
             </span>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 battle-log">
-            <div className="font-mono text-xs leading-relaxed text-[#888]">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 battle-log">
+            <div className="font-mono text-xs leading-relaxed text-[#888] break-words bg-[#0a0a0a] md:bg-transparent border border-[#1a1a1a] md:border-transparent p-3 md:p-0">
               {heatmapSegments.length > 0 ?
               heatmapSegments.map((seg, i) => {
                 if (seg.heat === 'neutral') {
@@ -995,7 +1024,7 @@ export function AuditLab() {
         </div>
 
         {/* RIGHT PANE */}
-        <div className="w-1/2 flex flex-col">
+        <div className="w-full md:w-1/2 flex flex-col min-h-[400px] md:min-h-0">
           {/* Hidden real audio element */}
           {currentAudioDebate?.cloudinary_audio_url &&
           <audio
@@ -1012,11 +1041,16 @@ export function AuditLab() {
           }
 
           {/* Audio Analysis */}
-          <div className="border-b border-[#262626] p-4 flex-shrink-0">
+          <div className={`border-b border-[#262626] p-4 pt-2 md:pt-4 flex-shrink-0 ${isAudioCollapsed ? 'order-last md:order-none' : ''}`}>
             <div className="flex items-center justify-between mb-3">
-              <span className="font-mono text-[10px] text-[#666] tracking-widest">
+              <button
+                type="button"
+                onClick={() => setIsAudioCollapsed((prev) => !prev)}
+                className="font-mono text-[10px] text-[#666] tracking-widest hover:text-white transition-colors"
+                aria-expanded={!isAudioCollapsed}
+              >
                 AUDIO ANALYSIS
-              </span>
+              </button>
               <button
                 onClick={togglePlay}
                 disabled={!currentAudioDebate?.cloudinary_audio_url}
@@ -1027,8 +1061,9 @@ export function AuditLab() {
               </button>
             </div>
 
-            {currentAudioDebate?.cloudinary_audio_url ?
-            <>
+            <div className={`transition-[max-height,opacity] duration-300 ${isAudioCollapsed ? 'max-h-0 opacity-0 overflow-hidden' : 'max-h-[500px] opacity-100'}`}>
+              {currentAudioDebate?.cloudinary_audio_url ?
+              <>
                 <div className="grid grid-cols-3 gap-3">
                   <div className={`transition-opacity duration-300 ${isPlaying && activeSpeaker !== 'SYSTEM' ? 'opacity-20' : ''}`}>
                     <div className="flex items-center gap-2 mb-2">
@@ -1037,7 +1072,7 @@ export function AuditLab() {
                         SYSTEM
                       </span>
                     </div>
-                    <div className="flex items-end gap-0.5 h-12 bg-[#0a0a0a] border border-[#262626] px-2 py-1">
+                    <div className="flex items-end gap-[2px] sm:gap-0.5 w-full aspect-[4/1] max-h-12 bg-[#0a0a0a] border border-[#262626] px-2 py-1 overflow-hidden">
                       {Array.from({ length: 25 }).map((_, i) =>
                     <WaveformBar key={i} color="#666" delay={i * 35} isActive={isPlaying && activeSpeaker === 'SYSTEM'} />
                     )}
@@ -1051,7 +1086,7 @@ export function AuditLab() {
                         AUDITOR
                       </span>
                     </div>
-                    <div className="flex items-end gap-0.5 h-12 bg-[#0a0a0a] border border-[#262626] px-2 py-1">
+                    <div className="flex items-end gap-[2px] sm:gap-0.5 w-full aspect-[4/1] max-h-12 bg-[#0a0a0a] border border-[#262626] px-2 py-1 overflow-hidden">
                       {Array.from({ length: 25 }).map((_, i) =>
                     <WaveformBar key={i} color="#EF4444" delay={i * 30} isActive={isPlaying && activeSpeaker === 'AUDITOR'} />
                     )}
@@ -1065,7 +1100,7 @@ export function AuditLab() {
                         OPTIMIST
                       </span>
                     </div>
-                    <div className="flex items-end gap-0.5 h-12 bg-[#0a0a0a] border border-[#262626] px-2 py-1">
+                    <div className="flex items-end gap-[2px] sm:gap-0.5 w-full aspect-[4/1] max-h-12 bg-[#0a0a0a] border border-[#262626] px-2 py-1 overflow-hidden">
                       {Array.from({ length: 25 }).map((_, i) =>
                     <WaveformBar key={i} color="#3B82F6" delay={i * 25} isActive={isPlaying && activeSpeaker === 'OPTIMIST'} />
                     )}
@@ -1088,29 +1123,45 @@ export function AuditLab() {
                   <span className="font-mono text-[9px] text-[#404040]">{audioDuration}</span>
                 </div>
               </>
-            :
-            <div className="text-center py-4">
+              :
+              <div className="text-center py-4">
                 <span className="font-mono text-[10px] text-[#404040]">
                   GENERATING AUDIO DEBATE...
                 </span>
                 <div className="scanning-bar mt-2" />
               </div>
-            }
+              }
+            </div>
           </div>
 
           {/* Battle Log */}
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className={`flex-1 flex flex-col overflow-hidden min-h-0 ${isBattleLogCollapsed ? 'order-last md:order-none' : ''}`}>
             <div className="flex items-center gap-2 px-4 py-2 border-b border-[#262626] flex-shrink-0">
               <TerminalIcon className="w-3 h-3 text-[#404040]" />
-              <span className="font-mono text-[10px] text-[#666] tracking-widest">
+              <button
+                type="button"
+                onClick={() => setIsBattleLogCollapsed((prev) => !prev)}
+                className="font-mono text-[10px] text-[#666] tracking-widest hover:text-white transition-colors"
+                aria-expanded={!isBattleLogCollapsed}
+                aria-controls="battle-log-body"
+              >
                 BATTLE LOG — LIVE TRANSCRIPT
-              </span>
-              <div className="ml-auto w-1.5 h-1.5 bg-[#EF4444] animate-pulse" />
+              </button>
+              <div className="ml-2 md:ml-auto w-1.5 h-1.5 bg-[#EF4444] animate-pulse" />
             </div>
             <div
               ref={battleLogRef}
-              className="flex-1 overflow-y-auto p-4 space-y-1 battle-log"
-              style={{ overflowY: isPlaying ? 'hidden' : 'auto' }}>
+              id="battle-log-body"
+              className={`overflow-y-auto p-4 space-y-1 battle-log transition-[max-height,opacity] duration-300 ${isBattleLogCollapsed ? 'max-h-0 opacity-0 overflow-hidden flex-none' : 'max-h-[45vh] md:max-h-none opacity-100 flex-1 min-h-0'}`}
+              style={{
+                overflowY: isBattleLogCollapsed ?
+                'hidden' :
+                isSmallScreen ?
+                'auto' :
+                isPlaying ?
+                'hidden' :
+                'auto'
+              }}>
 
               {activeEntryIndex < 0 && !isPlaying &&
               <div className="flex items-center justify-center h-full">

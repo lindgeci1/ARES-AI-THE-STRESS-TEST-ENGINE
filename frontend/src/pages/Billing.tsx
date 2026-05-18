@@ -128,27 +128,27 @@ export function Billing() {
     <div className="p-6 min-h-full">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between mb-1">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:gap-3 mb-1">
+          <button
+            onClick={handleReload}
+            disabled={offersLoading || paymentsLoading || reloading}
+            className="hidden md:flex items-center gap-2 font-mono text-[9px] text-[#666] tracking-widest border border-[#262626] px-2 py-2 hover:border-[#404040] hover:text-[#999] transition-colors disabled:opacity-50"
+          >
+            <RefreshCwIcon className={`w-3 h-3 ${reloading ? 'animate-spin' : ''}`} />
+            REFRESH
+          </button>
           <div className="flex items-center gap-2">
             <ZapIcon className="w-4 h-4 text-[#EF4444]" />
             <h1 className="font-sans text-xl font-bold text-white tracking-wide">
               BILLING &amp; PLANS
             </h1>
           </div>
-          <button
-            onClick={handleReload}
-            disabled={offersLoading || paymentsLoading || reloading}
-            className="hidden md:flex items-center gap-2 font-mono text-[9px] text-[#666] tracking-widest border border-[#262626] px-3 py-2 hover:border-[#404040] hover:text-[#999] transition-colors disabled:opacity-50"
-          >
-            <RefreshCwIcon className={`w-3 h-3 ${reloading ? 'animate-spin' : ''}`} />
-            REFRESH
-          </button>
         </div>
-        <div className="mt-3 md:hidden">
+        <div className="mt-3 md:hidden flex justify-start">
           <button
             onClick={handleReload}
             disabled={offersLoading || paymentsLoading || reloading}
-            className="flex w-full items-center justify-center gap-2 font-mono text-[9px] text-[#666] tracking-widest border border-[#262626] px-3 py-2 hover:border-[#404040] hover:text-[#999] transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 font-mono text-[9px] text-[#666] tracking-widest border border-[#262626] px-2 py-2 hover:border-[#404040] hover:text-[#999] transition-colors disabled:opacity-50"
           >
             <RefreshCwIcon className={`w-3 h-3 ${reloading ? 'animate-spin' : ''}`} />
             REFRESH

@@ -161,7 +161,7 @@ function CheckoutForm({ offer, intentData, onSuccess }: CheckoutFormProps) {
           </div>
         )}
       </button>
-      <p className="font-mono text-[9px] text-[#262626] text-center tracking-wider">
+      <p className="font-mono text-[9px] text-[#666] text-center tracking-wider">
         BY COMPLETING THIS PURCHASE YOU AGREE TO OUR TERMS OF SERVICE
       </p>
     </form>
@@ -224,14 +224,8 @@ export function Checkout() {
       <div className="flex items-center gap-3">
         <ZapIcon className="w-4 h-4 text-[#EF4444]" />
         <span className="font-mono text-xs font-bold tracking-widest whitespace-nowrap">ARES AI</span>
-        <span className="font-mono text-[9px] text-[#404040] tracking-widest ml-2 whitespace-nowrap">
-          — SECURE CHECKOUT
-        </span>
       </div>
-      <div className="flex items-center gap-2">
-        <LockIcon className="w-3 h-3 text-[#404040]" />
-        <span className="font-mono text-[9px] text-[#404040] tracking-widest">256-BIT ENCRYPTED</span>
-      </div>
+      <span className="font-mono text-[9px] text-[#404040] tracking-widest">SECURE CHECKOUT / ENCRYPTED</span>
     </div>
   );
 
@@ -275,7 +269,7 @@ export function Checkout() {
     <div className="min-h-screen bg-[#050505] text-white">
       {topBar}
       <div className="max-w-3xl md:max-w-4xl mx-auto px-4 sm:px-6 py-12 grid grid-cols-1 md:grid-cols-2 gap-0 border border-[#262626] mt-8">
-        <div className="bg-[#080808] border-r border-[#262626] p-6 sm:p-8 flex flex-col">
+        <div className="bg-[#080808] border border-[#262626] md:border-r md:border-b-0 p-6 sm:p-8 flex flex-col">
           <Link
             to="/billing"
             className="flex items-center gap-2 font-mono text-[10px] text-[#404040] hover:text-[#666] tracking-widest mb-8 transition-colors w-fit"
@@ -352,10 +346,10 @@ export function Checkout() {
         </div>
       </div>
       <div className="max-w-3xl md:max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-center gap-6">
-        <span className="font-mono text-[9px] text-[#1a1a1a]">VISA</span>
-        <span className="font-mono text-[9px] text-[#1a1a1a]">MASTERCARD</span>
-        <span className="font-mono text-[9px] text-[#1a1a1a]">AMEX</span>
-        <span className="font-mono text-[9px] text-[#1a1a1a]">STRIPE SECURED</span>
+        <span className="font-mono text-[9px] text-[#404040]">VISA</span>
+        <span className="font-mono text-[9px] text-[#404040]">MASTERCARD</span>
+        <span className="font-mono text-[9px] text-[#404040]">AMEX</span>
+        <span className="font-mono text-[9px] text-[#404040]">STRIPE SECURED</span>
       </div>
     </div>
   );
