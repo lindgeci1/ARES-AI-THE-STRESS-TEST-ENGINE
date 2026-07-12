@@ -12,6 +12,7 @@ import {
   XIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  GitCompareArrowsIcon,
 } from
 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -29,6 +30,11 @@ const navItems = [
   path: '/audit/demo-001',
   label: 'AUDIT LAB',
   icon: FlaskConicalIcon
+},
+{
+  path: '/compare',
+  label: 'COMPARE',
+  icon: GitCompareArrowsIcon
 },
 {
   path: '/billing',

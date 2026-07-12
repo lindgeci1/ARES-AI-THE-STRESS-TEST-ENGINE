@@ -10,17 +10,18 @@ import (
 
 func RequireRole(requiredRole string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		// Primary: Authorization header. Fallback: ?token= query param (needed for EventSource/SSE).
+		var tokenString string
 		authHeader := c.Get("Authorization")
-		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Missing or invalid authorization header",
-			})
+		if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
+			tokenString = strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
+		} else if q := strings.TrimSpace(c.Query("token")); q != "" {
+			tokenString = q
 		}
 
-		tokenString := strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
 		if tokenString == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Missing token",
+				"error": "Missing or invalid authorization header",
 			})
 		}
 

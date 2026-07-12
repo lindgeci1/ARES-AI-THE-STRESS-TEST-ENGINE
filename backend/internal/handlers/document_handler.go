@@ -1,8 +1,12 @@
 package handlers
 
 import (
-	"log"
+	"bufio"
+	"context"
+	"encoding/json"
+	"fmt"
 	"strconv"
+	"time"
 
 	"ares-ai-backend/internal/repository"
 	"ares-ai-backend/internal/service"
@@ -15,12 +19,13 @@ import (
 type DocumentHandler struct {
 	service         *service.DocumentService
 	pipelineService *service.AuditPipelineService
+	jobQueue        *service.JobQueueService
 	userRepo        *repository.UserRepository
 }
 
 // NewDocumentHandler creates a new document handler
-func NewDocumentHandler(service *service.DocumentService, pipelineService *service.AuditPipelineService, userRepo *repository.UserRepository) *DocumentHandler {
-	return &DocumentHandler{service: service, pipelineService: pipelineService, userRepo: userRepo}
+func NewDocumentHandler(svc *service.DocumentService, pipelineService *service.AuditPipelineService, jobQueue *service.JobQueueService, userRepo *repository.UserRepository) *DocumentHandler {
+	return &DocumentHandler{service: svc, pipelineService: pipelineService, jobQueue: jobQueue, userRepo: userRepo}
 }
 
 // extractJWTClaims extracts user info from JWT claims
@@ -105,12 +110,8 @@ func (h *DocumentHandler) CreateDocument(c *fiber.Ctx) error {
 		})
 	}
 
-	if h.pipelineService != nil {
-		go func(documentID uint) {
-			if pipelineErr := h.pipelineService.ProcessDocument(documentID, 1); pipelineErr != nil {
-				log.Printf("Pipeline error for document %d: %v", documentID, pipelineErr)
-			}
-		}(doc.ID)
+	if h.jobQueue != nil {
+		h.jobQueue.EnqueueAuditJob(doc.ID, 1)
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(doc)
@@ -478,13 +479,166 @@ func (h *DocumentHandler) ReAuditDocument(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	if h.pipelineService != nil {
-		go func(documentID uint, round int) {
-			if pipelineErr := h.pipelineService.ProcessDocument(documentID, round); pipelineErr != nil {
-				log.Printf("Re-audit pipeline error for document %d round %d: %v", documentID, round, pipelineErr)
-			}
-		}(updatedDoc.ID, newRound)
+	if h.jobQueue != nil {
+		h.jobQueue.EnqueueAuditJob(updatedDoc.ID, newRound)
 	}
 
 	return c.JSON(updatedDoc)
+}
+
+// CompareDocuments compares multiple documents using AI.
+// POST /api/v1/documents/compare
+func (h *DocumentHandler) CompareDocuments(c *fiber.Ctx) error {
+	requestingUserID, role, err := extractJWTClaims(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	var req struct {
+		DocumentIDs []uint `json:"document_ids"`
+	}
+	if err := c.BodyParser(&req); err != nil || len(req.DocumentIDs) < 2 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Provide at least 2 document_ids"})
+	}
+	if len(req.DocumentIDs) > 4 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Maximum 4 documents allowed"})
+	}
+
+	if h.pipelineService == nil {
+		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error": "Pipeline not available"})
+	}
+
+	var summaries []service.DocumentSummaryForComparison
+	for _, docID := range req.DocumentIDs {
+		doc, err := h.service.GetDocument(docID)
+		if err != nil {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": fmt.Sprintf("Document %d not found", docID)})
+		}
+		if role != "Admin" && doc.UserID != requestingUserID {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": fmt.Sprintf("Document %d not accessible", docID)})
+		}
+		if doc.Status != "processed" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": fmt.Sprintf("Document %d has not been processed yet", docID)})
+		}
+
+		score := 0
+		vulnCount := 0
+		fallacyCount := 0
+		rationale := ""
+
+		if len(doc.AuditReports) > 0 {
+			latest := doc.AuditReports[len(doc.AuditReports)-1]
+			if latest.ResilienceScore != nil {
+				score = *latest.ResilienceScore
+			}
+			rationale = latest.ResilienceRationale
+
+			var vulnArr []map[string]any
+			if json.Unmarshal([]byte(latest.Vulnerabilities), &vulnArr) == nil {
+				vulnCount = len(vulnArr)
+			}
+			var fallacyArr []map[string]any
+			if json.Unmarshal([]byte(latest.LogicalFallacies), &fallacyArr) == nil {
+				fallacyCount = len(fallacyArr)
+			}
+		}
+
+		summaries = append(summaries, service.DocumentSummaryForComparison{
+			Title:           doc.FileName,
+			ResilienceScore: score,
+			Vulnerabilities: vulnCount,
+			Fallacies:       fallacyCount,
+			Rationale:       rationale,
+		})
+	}
+
+	ollamaSvc := h.pipelineService.OllamaService()
+	result, err := ollamaSvc.GenerateComparison(summaries)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Comparison generation failed: " + err.Error()})
+	}
+
+	return c.JSON(fiber.Map{
+		"comparison": result,
+		"documents":  summaries,
+	})
+}
+
+// StreamDocumentEvents opens a Server-Sent Events stream for a document.
+// The client receives a single event ("done" or "failed") when the audit job completes,
+// then the stream closes. Times out after 10 minutes if no job completes.
+// GET /api/v1/documents/:id/events
+func (h *DocumentHandler) StreamDocumentEvents(c *fiber.Ctx) error {
+	requestingUserID, role, err := extractJWTClaims(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	idParam := c.Params("id")
+	idInt, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid document ID"})
+	}
+	docID := uint(idInt)
+
+	doc, err := h.service.GetDocument(docID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Document not found"})
+	}
+	if role != "Admin" && doc.UserID != requestingUserID {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Forbidden"})
+	}
+
+	// If document already finished, send event immediately.
+	if doc.Status == "processed" || doc.Status == "failed" {
+		c.Set("Content-Type", "text/event-stream")
+		c.Set("Cache-Control", "no-cache")
+		c.Set("Connection", "keep-alive")
+		event := "done"
+		if doc.Status == "failed" {
+			event = "failed"
+		}
+		return c.SendString(fmt.Sprintf("event: %s\ndata: %s\n\n", event, doc.Status))
+	}
+
+	if h.jobQueue == nil {
+		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error": "Job queue not available"})
+	}
+
+	ch := h.jobQueue.Subscribe(docID)
+	defer h.jobQueue.Unsubscribe(docID, ch)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+
+	c.Set("Content-Type", "text/event-stream")
+	c.Set("Cache-Control", "no-cache")
+	c.Set("Connection", "keep-alive")
+	c.Set("X-Accel-Buffering", "no")
+
+	c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
+		ticker := time.NewTicker(15 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case event, ok := <-ch:
+				if !ok {
+					return
+				}
+				fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, event)
+				w.Flush()
+				return
+			case <-ticker.C:
+				fmt.Fprintf(w, ": heartbeat\n\n")
+				w.Flush()
+			case <-ctx.Done():
+				fmt.Fprintf(w, "event: timeout\ndata: timeout\n\n")
+				w.Flush()
+				return
+			}
+		}
+	})
+
+	return nil
 }

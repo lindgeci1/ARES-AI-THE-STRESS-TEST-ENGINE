@@ -1,73 +1,107 @@
 package service
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
-	"net/smtp"
+	"io"
+	"net/http"
 	"os"
 )
 
-// EmailService sends transactional emails through SMTP.
+const sendGridAPIURL = "https://api.sendgrid.com/v3/mail/send"
+
+// EmailService sends transactional emails through the SendGrid API.
 type EmailService struct {
-	host string
-	port string
-	user string
-	pass string
-	from string
+	apiKey string
+	from   string
 }
 
-// NewEmailService creates an email service from SMTP environment variables.
+// NewEmailService creates an email service from SendGrid environment variables.
 func NewEmailService() *EmailService {
-	username := os.Getenv("SMTP_USERNAME")
-	if username == "" {
-		username = os.Getenv("SMTP_USER")
-	}
-
-	password := os.Getenv("SMTP_PASSWORD")
-	if password == "" {
-		password = os.Getenv("SMTP_PASS")
-	}
-
-	from := os.Getenv("SMTP_FROM")
+	from := os.Getenv("SENDGRID_FROM_EMAIL")
 	if from == "" {
-		from = username
+		from = "noreply@ares-ai.dev"
 	}
 
 	return &EmailService{
-		host: os.Getenv("SMTP_HOST"),
-		port: os.Getenv("SMTP_PORT"),
-		user: username,
-		pass: password,
-		from: from,
+		apiKey: os.Getenv("SENDGRID_API_KEY"),
+		from:   from,
 	}
+}
+
+type sendGridEmail struct {
+	Email string `json:"email"`
+}
+
+type sendGridPersonalization struct {
+	To []sendGridEmail `json:"to"`
+}
+
+type sendGridContent struct {
+	Type  string `json:"type"`
+	Value string `json:"value"`
+}
+
+type sendGridMailRequest struct {
+	Personalizations []sendGridPersonalization `json:"personalizations"`
+	From             sendGridEmail              `json:"from"`
+	Subject          string                     `json:"subject"`
+	Content          []sendGridContent          `json:"content"`
+}
+
+func (s *EmailService) send(toEmail, subject, htmlBody string) error {
+	if s.apiKey == "" || s.from == "" {
+		return fmt.Errorf("sendgrid configuration is incomplete")
+	}
+
+	payload := sendGridMailRequest{
+		Personalizations: []sendGridPersonalization{{To: []sendGridEmail{{Email: toEmail}}}},
+		From:             sendGridEmail{Email: s.from},
+		Subject:          subject,
+		Content:          []sendGridContent{{Type: "text/html", Value: htmlBody}},
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("encode sendgrid request: %w", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, sendGridAPIURL, bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("build sendgrid request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+s.apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("send sendgrid request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 300 {
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("sendgrid request failed with status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	return nil
 }
 
 // SendResetCode sends a password reset code email.
 func (s *EmailService) SendResetCode(toEmail string, code string) error {
-	if s.host == "" || s.port == "" || s.user == "" || s.pass == "" {
-		return fmt.Errorf("smtp configuration is incomplete")
-	}
-
 	subject := "ARES AI — Password Reset Code"
 	htmlBody := buildResetCodeEmail(code)
-	message := []byte(fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n%s",
-		s.from, toEmail, subject, htmlBody))
 
-	auth := smtp.PlainAuth("", s.user, s.pass, s.host)
-	addr := fmt.Sprintf("%s:%s", s.host, s.port)
-
-	if err := smtp.SendMail(addr, auth, s.from, []string{toEmail}, message); err != nil {
+	if err := s.send(toEmail, subject, htmlBody); err != nil {
 		return fmt.Errorf("send reset code email: %w", err)
 	}
 
 	return nil
 }
 
-// SendTempUserCredentials sends temp access credentials via SMTP.
+// SendTempUserCredentials sends temp access credentials via SendGrid.
 func (s *EmailService) SendTempUserCredentials(toEmail, operatorName, accessKey, expiresAt string) error {
-	if s.host == "" || s.port == "" || s.user == "" || s.pass == "" || s.from == "" {
-		return fmt.Errorf("smtp configuration is incomplete")
-	}
-
 	appURL := os.Getenv("APP_URL")
 	if appURL == "" {
 		appURL = "http://localhost:5173"
@@ -75,13 +109,8 @@ func (s *EmailService) SendTempUserCredentials(toEmail, operatorName, accessKey,
 
 	subject := "ARES AI — Your Temporary Access Credentials"
 	htmlBody := buildTempUserEmail(operatorName, toEmail, accessKey, expiresAt, appURL)
-	msg := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n%s",
-		s.from, toEmail, subject, htmlBody)
 
-	auth := smtp.PlainAuth("", s.user, s.pass, s.host)
-	addr := fmt.Sprintf("%s:%s", s.host, s.port)
-
-	if err := smtp.SendMail(addr, auth, s.from, []string{toEmail}, []byte(msg)); err != nil {
+	if err := s.send(toEmail, subject, htmlBody); err != nil {
 		return fmt.Errorf("send temp user credentials email: %w", err)
 	}
 

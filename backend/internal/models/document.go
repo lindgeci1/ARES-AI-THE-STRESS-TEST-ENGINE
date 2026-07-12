@@ -37,8 +37,13 @@ type AuditReport struct {
 	ID                uint              `json:"id" gorm:"primaryKey;autoIncrement"`
 	DocumentID        uint              `json:"document_id" gorm:"not null;index"`
 	RoundNumber       int               `json:"round_number" gorm:"not null;default:1"`
-	ResilienceScore   *int              `json:"resilience_score,omitempty" gorm:"type:int"`
-	HeatmapData       datatypes.JSONMap `json:"heatmap_data" gorm:"type:jsonb;default:'{}' " swaggertype:"string"`
+	ResilienceScore     *int              `json:"resilience_score,omitempty" gorm:"type:int"`
+	ResilienceRationale string            `json:"resilience_rationale,omitempty" gorm:"type:text"`
+	SectionScores       datatypes.JSON    `json:"section_scores,omitempty" gorm:"type:jsonb;default:'[]'" swaggertype:"string"`
+	QualityScore        *int              `json:"quality_score,omitempty" gorm:"type:int"`
+	QualityIssues       datatypes.JSONMap `json:"quality_issues,omitempty" gorm:"type:jsonb;default:'{}'" swaggertype:"string"`
+	QualityReason       string            `json:"quality_reason,omitempty" gorm:"type:text"`
+	HeatmapData         datatypes.JSONMap `json:"heatmap_data" gorm:"type:jsonb;default:'{}' " swaggertype:"string"`
 	Vulnerabilities   datatypes.JSON    `json:"vulnerabilities" gorm:"type:jsonb;default:'[]' " swaggertype:"string"`
 	LogicalFallacies  datatypes.JSON    `json:"logical_fallacies" gorm:"type:jsonb;default:'[]' " swaggertype:"string"`
 	FortificationPlan datatypes.JSONMap `json:"fortification_plan" gorm:"type:jsonb;default:'{}' " swaggertype:"string"`

@@ -14,6 +14,7 @@ import { AuditLab } from './pages/AuditLab';
 import { Checkout } from './pages/Checkout';
 import { NewAudit } from './pages/NewAudit';
 import { Billing } from './pages/Billing';
+import { CompareDocuments } from './pages/CompareDocuments';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminUsers } from './pages/AdminUsers';
 import { AdminDocuments } from './pages/AdminDocuments';
@@ -86,6 +87,17 @@ export function App() {
               <ProtectedRoute>
                 <Layout>
                   <Billing />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/compare"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <CompareDocuments />
                 </Layout>
               </ProtectedRoute>
             }

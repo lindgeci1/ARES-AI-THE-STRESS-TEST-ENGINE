@@ -3,6 +3,7 @@ import { Link, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   authService,
+  getToken,
   type Document,
   type HeatmapSegment,
   type Vulnerability,
@@ -110,47 +111,82 @@ export function AuditLab() {
     let cancelled = false;
     let finalizeTimer: ReturnType<typeof setTimeout> | null = null;
     let revealTimer: ReturnType<typeof setTimeout> | null = null;
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
+    let sse: EventSource | null = null;
+
+    const cleanup = () => {
+      cancelled = true;
+      if (finalizeTimer) clearTimeout(finalizeTimer);
+      if (revealTimer) clearTimeout(revealTimer);
+      if (pollInterval) clearInterval(pollInterval);
+      if (sse) sse.close();
+    };
+
+    const handleFinished = async (status: 'processed' | 'failed' | 'rejected') => {
+      if (cancelled) return;
+
+      if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+      if (sse) { sse.close(); sse = null; }
+
+      if (status === 'failed') {
+        setScanProgress(100);
+        setScanMessage('AUDIT FAILED — CHECK SYSTEM LOGS');
+        setIsScanning(false);
+        setLoading(false);
+        setError('Document processing failed. Please retry this audit.');
+        return;
+      }
+
+      if (status === 'rejected') {
+        setScanProgress(100);
+        setScanMessage('DOCUMENT REJECTED BY QUALITY CHECK');
+        try {
+          const doc = await authService.getDocumentById(Number(id));
+          if (cancelled) return;
+          setDocument(doc);
+        } catch { /* keep existing */ }
+        setIsScanning(false);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch the final document data now that it is ready.
+      try {
+        const doc = await authService.getDocumentById(Number(id));
+        if (cancelled) return;
+        setDocument(doc);
+        setError(null);
+      } catch { /* keep existing doc state */ }
+
+      if (!quotaRefreshDoneRef.current) {
+        quotaRefreshDoneRef.current = true;
+        refreshUser().catch((e) => console.error('Failed to refresh quota:', e));
+      }
+
+      setScanProgress(90);
+      setScanMessage('FINALIZING AUDIO SYNTHESIS...');
+
+      finalizeTimer = setTimeout(() => {
+        if (cancelled) return;
+        setScanProgress(100);
+        setScanMessage('AUDIT COMPLETE');
+        revealTimer = setTimeout(() => {
+          if (cancelled) return;
+          setIsScanning(false);
+          setLoading(false);
+        }, 800);
+      }, 600);
+    };
 
     const fetchDocument = async () => {
       try {
         const doc = await authService.getDocumentById(Number(id));
         if (cancelled) return;
-
         setDocument(doc);
         setError(null);
 
-        if (doc.status === 'failed') {
-          setScanProgress(100);
-          setScanMessage('AUDIT FAILED — CHECK SYSTEM LOGS');
-          setIsScanning(false);
-          setLoading(false);
-          setError('Document processing failed. Please retry this audit.');
-          return;
-        }
-
-        if (doc.status === 'processed') {
-          if (!quotaRefreshDoneRef.current) {
-            quotaRefreshDoneRef.current = true;
-            refreshUser().catch((refreshErr) => {
-              console.error('Failed to refresh quota after processing:', refreshErr);
-            });
-          }
-
-          setScanProgress(90);
-          setScanMessage('FINALIZING AUDIO SYNTHESIS...');
-
-          finalizeTimer = setTimeout(() => {
-            if (cancelled) return;
-            setScanProgress(100);
-            setScanMessage('AUDIT COMPLETE');
-
-            revealTimer = setTimeout(() => {
-              if (cancelled) return;
-              setIsScanning(false);
-              setLoading(false);
-            }, 800);
-          }, 600);
-
+        if (doc.status === 'processed' || doc.status === 'failed' || doc.status === 'rejected') {
+          await handleFinished(doc.status as 'processed' | 'failed' | 'rejected');
           return;
         }
 
@@ -170,24 +206,45 @@ export function AuditLab() {
       }
     };
 
-    if (isScanning || loading) {
+    if (!isScanning && !loading) {
+      // Document already done — just fetch once.
       fetchDocument();
-      const interval = setInterval(fetchDocument, 3000);
-      return () => {
-        cancelled = true;
-        if (finalizeTimer) clearTimeout(finalizeTimer);
-        if (revealTimer) clearTimeout(revealTimer);
-        clearInterval(interval);
-      };
+      return cleanup;
     }
 
+    // Do an initial fetch to populate UI immediately.
     fetchDocument();
 
-    return () => {
-      cancelled = true;
-      if (finalizeTimer) clearTimeout(finalizeTimer);
-      if (revealTimer) clearTimeout(revealTimer);
-    };
+    // Try SSE first for push notification when job completes.
+    const token = getToken();
+    const sseSupported = typeof EventSource !== 'undefined';
+
+    if (sseSupported && token) {
+      const apiBase = (import.meta as unknown as { env: Record<string, string> }).env?.VITE_API_URL ?? 'http://localhost:3000/api/v1';
+      sse = new EventSource(`${apiBase}/documents/${id}/events?token=${encodeURIComponent(token)}`);
+
+      sse.addEventListener('done', () => { handleFinished('processed'); });
+      sse.addEventListener('failed', () => { handleFinished('failed'); });
+      sse.addEventListener('timeout', () => {
+        // SSE timed out server-side — fall through to polling fallback.
+        if (sse) { sse.close(); sse = null; }
+        if (!cancelled && !pollInterval) {
+          pollInterval = setInterval(fetchDocument, 3000);
+        }
+      });
+      sse.onerror = () => {
+        // SSE connection dropped — fall back to polling.
+        if (sse) { sse.close(); sse = null; }
+        if (!cancelled && !pollInterval) {
+          pollInterval = setInterval(fetchDocument, 3000);
+        }
+      };
+    } else {
+      // No SSE support — use polling as the only mechanism.
+      pollInterval = setInterval(fetchDocument, 3000);
+    }
+
+    return cleanup;
   }, [id, isScanning, loading, refreshUser]);
 
   // ── AUDIT LAB STATE ──
@@ -873,8 +930,44 @@ export function AuditLab() {
         </div>
       </div>
 
+      {/* Quality Check Banners */}
+      {document?.status === 'rejected' && (() => {
+        const report = document?.audit_reports?.[0];
+        const reason = report?.quality_reason || 'This document did not meet the minimum quality requirements for analysis.';
+        return (
+          <div className="border border-[#EF4444]/40 bg-[#EF4444]/10 px-6 py-4 flex-shrink-0">
+            <div className="flex items-start gap-3">
+              <AlertTriangleIcon className="w-4 h-4 text-[#EF4444] flex-shrink-0 mt-0.5" />
+              <div>
+                <div className="font-mono text-[10px] font-bold text-[#EF4444] tracking-widest mb-1">DOCUMENT REJECTED</div>
+                <p className="font-mono text-[10px] text-[#EF4444]/80 leading-relaxed">{reason}</p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+      {document?.status !== 'rejected' && (() => {
+        const issues = currentAuditReport?.quality_issues?.issues;
+        if (!issues || issues.length === 0) return null;
+        return (
+          <div className="border border-[#EAB308]/40 bg-[#EAB308]/10 px-6 py-4 flex-shrink-0">
+            <div className="flex items-start gap-3">
+              <AlertTriangleIcon className="w-4 h-4 text-[#EAB308] flex-shrink-0 mt-0.5" />
+              <div>
+                <div className="font-mono text-[10px] font-bold text-[#EAB308] tracking-widest mb-1">QUALITY WARNINGS DETECTED</div>
+                <ul className="space-y-0.5">
+                  {issues.map((issue: string, i: number) => (
+                    <li key={i} className="font-mono text-[10px] text-[#EAB308]/80">— {issue}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Diagnostic Report Panel */}
-      {showDiagnostic &&
+      {document?.status !== 'rejected' && showDiagnostic &&
       <div className="border-b border-[#262626] bg-[#080808] flex-shrink-0">
           <div className="px-6 py-4 border-b border-[#262626] flex items-start justify-between">
             <div>
@@ -907,26 +1000,47 @@ export function AuditLab() {
 
                 {survivalScore !== null ? `${survivalScore}%` : 'N/A'}
               </div>
-              {/*
-              <div className="mt-2 w-24 h-1 bg-[#1a1a1a] ml-auto">
-                {survivalScore !== null && (
-                  <div
-                    className="h-full"
-                    style={{
-                      width: `${survivalScore}%`,
-                      backgroundColor: scoreColor
-                    }} />
-                )}
-
-              </div>
-              */}
-              {/*
-              <div className="font-mono text-[9px] text-[#EAB308] tracking-widest">
-                {scoreLabel === 'N/A' ? 'N/A' : `${scoreLabel} RISK`}
-              </div>
-              */}
+              {currentAuditReport?.resilience_rationale && (
+                <div className="mt-2 font-mono text-[9px] text-[#666] leading-relaxed text-right max-w-xs ml-auto">
+                  {currentAuditReport.resilience_rationale}
+                </div>
+              )}
             </div>
           </div>
+
+          {/* ── SECTION BREAKDOWN ── */}
+          {(() => {
+            const raw = currentAuditReport?.section_scores;
+            const sections: { section_name: string; section_score: number; section_rationale: string }[] =
+              Array.isArray(raw) ? raw : [];
+            if (sections.length === 0) return null;
+            return (
+              <div className="border-b border-[#262626] px-4 py-4">
+                <div className="font-mono text-[9px] text-[#404040] tracking-widest mb-3">SECTION BREAKDOWN</div>
+                <div className="space-y-2">
+                  {sections.map((s) => {
+                    const color = s.section_score < 40 ? '#EF4444' : s.section_score < 70 ? '#EAB308' : '#22C55E';
+                    return (
+                      <div key={s.section_name} className="flex items-center gap-3">
+                        <div className="font-mono text-[9px] text-[#666] w-40 flex-shrink-0 truncate" title={s.section_name}>
+                          {s.section_name}
+                        </div>
+                        <div className="flex-1 h-1 bg-[#1a1a1a]">
+                          <div
+                            className="h-full transition-all"
+                            style={{ width: `${s.section_score}%`, backgroundColor: color }}
+                          />
+                        </div>
+                        <div className="font-mono text-[9px] font-bold w-8 text-right flex-shrink-0" style={{ color }}>
+                          {s.section_score}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="grid grid-cols-1 md:flex border-b border-[#262626]">
             {TABS.map(({ id: tabId, label, icon: Icon, count }) =>

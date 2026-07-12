@@ -46,10 +46,18 @@ func NewAuditPipelineService(
 	}
 }
 
+func (s *AuditPipelineService) OllamaService() *OllamaService {
+	return s.ollamaService
+}
+
 func (s *AuditPipelineService) ProcessDocument(documentID uint, roundNumber int) error {
 	if err := s.process(documentID, roundNumber); err != nil {
-		if _, updateErr := s.documentRepo.Update(documentID, map[string]any{"status": "failed"}); updateErr != nil {
-			log.Printf("failed to update document %d status to failed: %v", documentID, updateErr)
+		// Check current status — if already set to "rejected" by quality check, don't overwrite it.
+		doc, fetchErr := s.documentRepo.GetByID(documentID)
+		if fetchErr != nil || doc.Status != "rejected" {
+			if _, updateErr := s.documentRepo.Update(documentID, map[string]any{"status": "failed"}); updateErr != nil {
+				log.Printf("failed to update document %d status to failed: %v", documentID, updateErr)
+			}
 		}
 		return err
 	}
@@ -75,6 +83,25 @@ func (s *AuditPipelineService) process(documentID uint, roundNumber int) error {
 
 	if _, err := s.documentRepo.Update(documentID, map[string]any{"raw_text": rawText}); err != nil {
 		return fmt.Errorf("store raw text: %w", err)
+	}
+
+	// Pre-execution quality check
+	qualityResult, qualityErr := s.ollamaService.EvaluateDocumentQuality(rawText)
+	if qualityErr != nil {
+		log.Printf("Warning: quality check failed for document %d: %v — continuing anyway", documentID, qualityErr)
+	} else if qualityResult.Recommendation == "block" {
+		score := qualityResult.QualityScore
+		s.documentRepo.CreateAuditReport(&models.AuditReport{
+			DocumentID:    documentID,
+			RoundNumber:   roundNumber,
+			QualityScore:  &score,
+			QualityIssues: datatypes.JSONMap{"issues": qualityResult.QualityIssues},
+			QualityReason: qualityResult.Reason,
+		})
+		if _, updateErr := s.documentRepo.Update(documentID, map[string]any{"status": "rejected"}); updateErr != nil {
+			log.Printf("failed to update document %d status to rejected: %v", documentID, updateErr)
+		}
+		return fmt.Errorf("document rejected by quality check: %s", qualityResult.Reason)
 	}
 
 	transcript, err := s.ollamaService.GenerateDebate(rawText)
@@ -117,6 +144,7 @@ func (s *AuditPipelineService) process(documentID uint, roundNumber int) error {
 	if auditResult != nil {
 		vulnJSON, vulnErr := json.Marshal(auditResult.Vulnerabilities)
 		fallacyJSON, fallacyErr := json.Marshal(auditResult.LogicalFallacies)
+		sectionJSON, sectionErr := json.Marshal(auditResult.DocumentSections)
 
 		if vulnErr != nil || fallacyErr != nil {
 			log.Printf(
@@ -126,14 +154,25 @@ func (s *AuditPipelineService) process(documentID uint, roundNumber int) error {
 				fallacyErr,
 			)
 		} else {
+			if sectionErr != nil {
+				sectionJSON = []byte("[]")
+			}
 			auditReport := &models.AuditReport{
-				DocumentID:        documentID,
-				RoundNumber:       roundNumber,
-				ResilienceScore:   &auditResult.ResilienceScore,
-				HeatmapData:       datatypes.JSONMap{"segments": auditResult.HeatmapData},
-				Vulnerabilities:   datatypes.JSON(vulnJSON),
-				LogicalFallacies:  datatypes.JSON(fallacyJSON),
-				FortificationPlan: datatypes.JSONMap{"steps": auditResult.FortificationPlan},
+				DocumentID:          documentID,
+				RoundNumber:         roundNumber,
+				ResilienceScore:     &auditResult.ResilienceScore,
+				ResilienceRationale: auditResult.ResilienceRationale,
+				SectionScores:       datatypes.JSON(sectionJSON),
+				HeatmapData:         datatypes.JSONMap{"segments": auditResult.HeatmapData},
+				Vulnerabilities:     datatypes.JSON(vulnJSON),
+				LogicalFallacies:    datatypes.JSON(fallacyJSON),
+				FortificationPlan:   datatypes.JSONMap{"steps": auditResult.FortificationPlan},
+			}
+			if qualityResult != nil {
+				score := qualityResult.QualityScore
+				auditReport.QualityScore = &score
+				auditReport.QualityIssues = datatypes.JSONMap{"issues": qualityResult.QualityIssues}
+				auditReport.QualityReason = qualityResult.Reason
 			}
 
 			if createErr := s.documentRepo.CreateAuditReport(auditReport); createErr != nil {

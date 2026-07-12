@@ -82,6 +82,13 @@ func main() {
 
 	log.Println("✅ Successfully connected to the database!")
 
+	// Add new columns if they don't exist yet.
+	db.Exec("ALTER TABLE audit_reports ADD COLUMN IF NOT EXISTS resilience_rationale TEXT DEFAULT ''")
+	db.Exec("ALTER TABLE audit_reports ADD COLUMN IF NOT EXISTS section_scores JSONB DEFAULT '[]'")
+	db.Exec("ALTER TABLE audit_reports ADD COLUMN IF NOT EXISTS quality_score INT")
+	db.Exec("ALTER TABLE audit_reports ADD COLUMN IF NOT EXISTS quality_issues JSONB DEFAULT '{}'")
+	db.Exec("ALTER TABLE audit_reports ADD COLUMN IF NOT EXISTS quality_reason TEXT DEFAULT ''")
+
 	// Drop old unique indexes so document round history can store multiple rows per document.
 	db.Exec("DROP INDEX IF EXISTS idx_audit_reports_document_id")
 	db.Exec("DROP INDEX IF EXISTS uni_audit_reports_document_id")
@@ -150,13 +157,16 @@ func main() {
 	}
 
 	var pipelineService *service.AuditPipelineService
+	var jobQueue *service.JobQueueService
 	if cloudinaryService != nil && ttsService != nil {
 		pipelineService = service.NewAuditPipelineService(docRepo, ollamaService, ttsService, cloudinaryService)
+		jobQueue = service.NewJobQueueService(pipelineService)
+		log.Println("✅ Job queue initialized")
 	} else {
 		log.Println("⚠️  Warning: Audit pipeline disabled due to missing dependencies")
 	}
 
-	docHandler := handlers.NewDocumentHandler(docService, pipelineService, userRepo)
+	docHandler := handlers.NewDocumentHandler(docService, pipelineService, jobQueue, userRepo)
 
 	offerRepo := repository.NewOfferRepository(db)
 	offerService := service.NewOfferService(offerRepo)

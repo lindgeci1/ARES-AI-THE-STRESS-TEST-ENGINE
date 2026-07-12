@@ -166,6 +166,11 @@ export interface AuditReport {
   document_id: number;
   round_number: number;
   resilience_score: number | null;
+  resilience_rationale?: string;
+  section_scores?: { section_name: string; section_score: number; section_rationale: string }[];
+  quality_score?: number;
+  quality_issues?: { issues?: string[] };
+  quality_reason?: string;
   heatmap_data: { segments: HeatmapSegment[] } | HeatmapSegment[] | any;
   vulnerabilities: Vulnerability[] | any;
   logical_fallacies: LogicalFallacy[] | any;
@@ -683,6 +688,16 @@ export const authService = {
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.error || 'Failed to clear expired sessions');
+    }
+  },
+
+  // Compare multiple documents
+  async compareDocuments(documentIds: number[]): Promise<any> {
+    try {
+      const response = await axiosInstance.post('/documents/compare', { document_ids: documentIds });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || 'Failed to compare documents');
     }
   },
 
